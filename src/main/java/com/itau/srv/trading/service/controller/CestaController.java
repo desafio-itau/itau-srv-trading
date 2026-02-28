@@ -1,6 +1,7 @@
 package com.itau.srv.trading.service.controller;
 
 import com.itau.common.library.generic.ControllerGenerico;
+import com.itau.srv.trading.service.dto.cesta.CestaRecomendacaoAtivaResponseDTO;
 import com.itau.srv.trading.service.dto.cesta.CestaResponseDTO;
 import com.itau.srv.trading.service.dto.cesta.CriarTopFiveRequestDTO;
 import com.itau.srv.trading.service.dto.cesta.CriarTopFiveResponseDTO;
@@ -55,5 +56,12 @@ public class CestaController implements ControllerGenerico {
                             return new RuntimeException("COTACAO_NAO_ENCONTRADA");
                         })
                 );
+    }
+
+    @GetMapping("/cesta/atual")
+    public ResponseEntity<CestaRecomendacaoAtivaResponseDTO> obterCestaAtiva() {
+        log.info("Buscando cesta ativa.");
+
+        return ResponseEntity.ok(cestaService.obterCestaAtiva());
     }
 }
