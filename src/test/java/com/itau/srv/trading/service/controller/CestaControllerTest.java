@@ -5,7 +5,6 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.itau.common.library.exception.NegocioException;
 import com.itau.common.library.handler.GlobalExceptionHandler;
 import com.itau.srv.trading.service.dto.cesta.*;
-import com.itau.srv.trading.service.dto.cotacaob3.CotacaoB3;
 import com.itau.srv.trading.service.dto.itemcesta.ItemCestaRequestDTO;
 import com.itau.srv.trading.service.dto.itemcesta.ItemCestaResponseDTO;
 import com.itau.srv.trading.service.dto.itemcesta.ItemCotacaoAtualResponseDTO;
@@ -22,14 +21,12 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -128,102 +125,6 @@ class CestaControllerTest {
     }
 
     @Test
-    @DisplayName("Deve listar cotações com sucesso")
-    void deveListarCotacoesComSucesso() throws Exception {
-        // Given
-        List<CotacaoB3> cotacoes = List.of(
-                new CotacaoB3(
-                        LocalDate.of(2026, 1, 31),
-                        "PETR4",
-                        "02",
-                        10,
-                        "PETROBRAS",
-                        new BigDecimal("35.00"),
-                        new BigDecimal("36.00"),
-                        new BigDecimal("34.00"),
-                        new BigDecimal("35.50"),
-                        new BigDecimal("35.25"),
-                        1000000L,
-                        new BigDecimal("35250000.00")
-                ),
-                new CotacaoB3(
-                        LocalDate.of(2026, 1, 31),
-                        "VALE3",
-                        "02",
-                        10,
-                        "VALE",
-                        new BigDecimal("62.00"),
-                        new BigDecimal("63.00"),
-                        new BigDecimal("61.00"),
-                        new BigDecimal("62.50"),
-                        new BigDecimal("62.25"),
-                        800000L,
-                        new BigDecimal("49800000.00")
-                )
-        );
-
-        when(cestaService.buscarCotacoes()).thenReturn(cotacoes);
-
-        // When & Then
-        mockMvc.perform(get("/api/admin/cotacoes")
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(2)))
-                .andExpect(jsonPath("$[0].ticker").value("PETR4"))
-                .andExpect(jsonPath("$[0].precoFechamento").value(35.50))
-                .andExpect(jsonPath("$[1].ticker").value("VALE3"))
-                .andExpect(jsonPath("$[1].precoFechamento").value(62.50));
-
-        verify(cestaService).buscarCotacoes();
-    }
-
-    @Test
-    @DisplayName("Deve obter cotação de fechamento por ticker com sucesso")
-    void deveObterCotacaoFechamentoPorTickerComSucesso() throws Exception {
-        // Given
-        CotacaoB3 cotacao = new CotacaoB3(
-                LocalDate.of(2026, 1, 31),
-                "PETR4",
-                "02",
-                10,
-                "PETROBRAS",
-                new BigDecimal("35.00"),
-                new BigDecimal("36.00"),
-                new BigDecimal("34.00"),
-                new BigDecimal("35.50"),
-                new BigDecimal("35.25"),
-                1000000L,
-                new BigDecimal("35250000.00")
-        );
-
-        when(cestaService.obterCotacaoFechamento("PETR4")).thenReturn(Optional.of(cotacao));
-
-        // When & Then
-        mockMvc.perform(get("/api/admin/cotacoes/PETR4")
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.ticker").value("PETR4"))
-                .andExpect(jsonPath("$.precoFechamento").value(35.50))
-                .andExpect(jsonPath("$.nomeEmpresa").value("PETROBRAS"));
-
-        verify(cestaService).obterCotacaoFechamento("PETR4");
-    }
-
-    @Test
-    @DisplayName("Deve retornar erro 500 quando ticker não for encontrado")
-    void deveRetornarErro500QuandoTickerNaoForEncontrado() throws Exception {
-        // Given
-        when(cestaService.obterCotacaoFechamento(anyString())).thenReturn(Optional.empty());
-
-        // When & Then
-        mockMvc.perform(get("/api/admin/cotacoes/INVALIDO")
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isInternalServerError());
-
-        verify(cestaService).obterCotacaoFechamento("INVALIDO");
-    }
-
-    @Test
     @DisplayName("Deve retornar Location header com ID da cesta criada")
     void deveRetornarLocationHeaderComIdDaCestaCriada() throws Exception {
         // Given
@@ -281,21 +182,6 @@ class CestaControllerTest {
     }
 
     @Test
-    @DisplayName("Deve retornar lista vazia de cotações quando não houver dados")
-    void deveRetornarListaVaziaDeCotacoesQuandoNaoHouverDados() throws Exception {
-        // Given
-        when(cestaService.buscarCotacoes()).thenReturn(List.of());
-
-        // When & Then
-        mockMvc.perform(get("/api/admin/cotacoes")
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(0)));
-
-        verify(cestaService).buscarCotacoes();
-    }
-
-    @Test
     @DisplayName("Deve chamar service com os parâmetros corretos")
     void deveChamarServiceComParametrosCorretos() throws Exception {
         // Given
@@ -331,37 +217,6 @@ class CestaControllerTest {
                 .andExpect(jsonPath("$.mensagem").exists());
 
         verify(cestaService).criarOuAlterarCesta(any(CriarTopFiveRequestDTO.class));
-    }
-
-    @Test
-    @DisplayName("Deve buscar cotação por ticker específico")
-    void deveBuscarCotacaoPorTickerEspecifico() throws Exception {
-        // Given
-        CotacaoB3 cotacao = new CotacaoB3(
-                LocalDate.of(2026, 1, 31),
-                "VALE3",
-                "02",
-                10,
-                "VALE",
-                new BigDecimal("62.00"),
-                new BigDecimal("63.00"),
-                new BigDecimal("61.00"),
-                new BigDecimal("62.50"),
-                new BigDecimal("62.25"),
-                800000L,
-                new BigDecimal("49800000.00")
-        );
-
-        when(cestaService.obterCotacaoFechamento("VALE3")).thenReturn(Optional.of(cotacao));
-
-        // When & Then
-        mockMvc.perform(get("/api/admin/cotacoes/VALE3")
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.ticker").value("VALE3"))
-                .andExpect(jsonPath("$.nomeEmpresa").value("VALE"));
-
-        verify(cestaService).obterCotacaoFechamento("VALE3");
     }
 
     @Test

@@ -59,14 +59,6 @@ public class CestaService {
         return alterarCestaComRebalanceamento(dto, cestaAtiva.get());
     }
 
-    public List<CotacaoB3> buscarCotacoes() {
-        return cotahistParser.parseArquivo("cotacoes/COTAHIST_M012026.TXT");
-    }
-
-    public Optional<CotacaoB3> obterCotacaoFechamento(String ticker) {
-        return cotahistParser.obterCotacaoFechamento("cotacoes/COTAHIST_M012026.TXT", ticker);
-    }
-
     @Transactional(readOnly = true)
     public CestaRecomendacaoAtivaResponseDTO obterCestaAtiva() {
         CestaRecomendacao cestaRecomendacao = cestaRecomendacaoRepository.findByAtivaTrue()
