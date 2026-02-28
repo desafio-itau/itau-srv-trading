@@ -4,9 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.itau.common.library.exception.NegocioException;
 import com.itau.common.library.handler.GlobalExceptionHandler;
-import com.itau.srv.trading.service.dto.cesta.CestaRecomendacaoAtivaResponseDTO;
-import com.itau.srv.trading.service.dto.cesta.CriarTopFiveRequestDTO;
-import com.itau.srv.trading.service.dto.cesta.CriarTopFiveResponseDTO;
+import com.itau.srv.trading.service.dto.cesta.*;
 import com.itau.srv.trading.service.dto.cotacaob3.CotacaoB3;
 import com.itau.srv.trading.service.dto.itemcesta.ItemCestaRequestDTO;
 import com.itau.srv.trading.service.dto.itemcesta.ItemCestaResponseDTO;
@@ -470,6 +468,214 @@ class CestaControllerTest {
                 .andExpect(jsonPath("$.itens").exists());
 
         verify(cestaService).obterCestaAtiva();
+    }
+
+    @Test
+    @DisplayName("Deve obter histórico de cestas com sucesso")
+    void deveObterHistoricoDeCestasComSucesso() throws Exception {
+        // Given
+        List<ItemCestaResponseDTO> itens1 = List.of(
+                new ItemCestaResponseDTO("PETR4", new BigDecimal("30.00")),
+                new ItemCestaResponseDTO("VALE3", new BigDecimal("25.00"))
+        );
+
+        List<ItemCestaResponseDTO> itens2 = List.of(
+                new ItemCestaResponseDTO("ITUB4", new BigDecimal("40.00")),
+                new ItemCestaResponseDTO("BBDC4", new BigDecimal("60.00"))
+        );
+
+        CestaHistoricoResponseDTO cesta1 = new CestaHistoricoResponseDTO(
+                1L,
+                "Top Five - Janeiro 2026",
+                false,
+                LocalDateTime.of(2026, 1, 1, 9, 0, 0),
+                LocalDateTime.of(2026, 2, 1, 9, 0, 0),
+                itens1
+        );
+
+        CestaHistoricoResponseDTO cesta2 = new CestaHistoricoResponseDTO(
+                2L,
+                "Top Five - Fevereiro 2026",
+                true,
+                LocalDateTime.of(2026, 2, 1, 9, 0, 0),
+                null,
+                itens2
+        );
+
+        HistoricoCestaResponseDTO historico = new HistoricoCestaResponseDTO(List.of(cesta1, cesta2));
+
+        when(cestaService.obterHistoricoCestas()).thenReturn(historico);
+
+        // When & Then
+        mockMvc.perform(get("/api/admin/cesta/historico")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.cestas", hasSize(2)))
+                .andExpect(jsonPath("$.cestas[0].id").value(1))
+                .andExpect(jsonPath("$.cestas[0].nome").value("Top Five - Janeiro 2026"))
+                .andExpect(jsonPath("$.cestas[0].ativa").value(false))
+                .andExpect(jsonPath("$.cestas[0].dataDesativacao").exists())
+                .andExpect(jsonPath("$.cestas[0].itens", hasSize(2)))
+                .andExpect(jsonPath("$.cestas[1].id").value(2))
+                .andExpect(jsonPath("$.cestas[1].nome").value("Top Five - Fevereiro 2026"))
+                .andExpect(jsonPath("$.cestas[1].ativa").value(true))
+                .andExpect(jsonPath("$.cestas[1].dataDesativacao").doesNotExist());
+
+        verify(cestaService).obterHistoricoCestas();
+    }
+
+    @Test
+    @DisplayName("Deve retornar histórico vazio quando não houver cestas")
+    void deveRetornarHistoricoVazioQuandoNaoHouverCestas() throws Exception {
+        // Given
+        HistoricoCestaResponseDTO historicoVazio = new HistoricoCestaResponseDTO(List.of());
+
+        when(cestaService.obterHistoricoCestas()).thenReturn(historicoVazio);
+
+        // When & Then
+        mockMvc.perform(get("/api/admin/cesta/historico")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.cestas", hasSize(0)));
+
+        verify(cestaService).obterHistoricoCestas();
+    }
+
+    @Test
+    @DisplayName("Deve incluir data de desativação para cestas inativas no histórico")
+    void deveIncluirDataDeDesativacaoParaCestasInativasNoHistorico() throws Exception {
+        // Given
+        CestaHistoricoResponseDTO cestaInativa = new CestaHistoricoResponseDTO(
+                1L,
+                "Cesta Desativada",
+                false,
+                LocalDateTime.of(2026, 1, 1, 9, 0, 0),
+                LocalDateTime.of(2026, 2, 1, 9, 0, 0),
+                List.of()
+        );
+
+        HistoricoCestaResponseDTO historico = new HistoricoCestaResponseDTO(List.of(cestaInativa));
+
+        when(cestaService.obterHistoricoCestas()).thenReturn(historico);
+
+        // When & Then
+        mockMvc.perform(get("/api/admin/cesta/historico")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.cestas[0].ativa").value(false))
+                .andExpect(jsonPath("$.cestas[0].dataDesativacao").exists());
+
+        verify(cestaService).obterHistoricoCestas();
+    }
+
+    @Test
+    @DisplayName("Deve retornar todos os campos das cestas no histórico")
+    void deveRetornarTodosCamposDasCestasNoHistorico() throws Exception {
+        // Given
+        CestaHistoricoResponseDTO cesta = new CestaHistoricoResponseDTO(
+                1L,
+                "Top Five - Fevereiro 2026",
+                true,
+                LocalDateTime.now(),
+                null,
+                List.of(new ItemCestaResponseDTO("PETR4", new BigDecimal("30.00")))
+        );
+
+        HistoricoCestaResponseDTO historico = new HistoricoCestaResponseDTO(List.of(cesta));
+
+        when(cestaService.obterHistoricoCestas()).thenReturn(historico);
+
+        // When & Then
+        mockMvc.perform(get("/api/admin/cesta/historico")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.cestas[0].id").exists())
+                .andExpect(jsonPath("$.cestas[0].nome").exists())
+                .andExpect(jsonPath("$.cestas[0].ativa").exists())
+                .andExpect(jsonPath("$.cestas[0].dataCriacao").exists())
+                .andExpect(jsonPath("$.cestas[0].itens").exists());
+
+        verify(cestaService).obterHistoricoCestas();
+    }
+
+    @Test
+    @DisplayName("Deve incluir itens de cada cesta no histórico")
+    void deveIncluirItensDeCadaCestaNoHistorico() throws Exception {
+        // Given
+        List<ItemCestaResponseDTO> itens = List.of(
+                new ItemCestaResponseDTO("PETR4", new BigDecimal("30.00")),
+                new ItemCestaResponseDTO("VALE3", new BigDecimal("25.00")),
+                new ItemCestaResponseDTO("ITUB4", new BigDecimal("20.00")),
+                new ItemCestaResponseDTO("BBDC4", new BigDecimal("15.00")),
+                new ItemCestaResponseDTO("WEGE3", new BigDecimal("10.00"))
+        );
+
+        CestaHistoricoResponseDTO cesta = new CestaHistoricoResponseDTO(
+                1L,
+                "Top Five - Fevereiro 2026",
+                true,
+                LocalDateTime.now(),
+                null,
+                itens
+        );
+
+        HistoricoCestaResponseDTO historico = new HistoricoCestaResponseDTO(List.of(cesta));
+
+        when(cestaService.obterHistoricoCestas()).thenReturn(historico);
+
+        // When & Then
+        mockMvc.perform(get("/api/admin/cesta/historico")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.cestas[0].itens", hasSize(5)))
+                .andExpect(jsonPath("$.cestas[0].itens[0].ticker").value("PETR4"))
+                .andExpect(jsonPath("$.cestas[0].itens[0].percentual").value(30.00));
+
+        verify(cestaService).obterHistoricoCestas();
+    }
+
+    @Test
+    @DisplayName("Deve retornar múltiplas cestas ordenadas no histórico")
+    void deveRetornarMultiplasCestasOrdenadasNoHistorico() throws Exception {
+        // Given
+        CestaHistoricoResponseDTO cesta1 = new CestaHistoricoResponseDTO(
+                1L, "Cesta 1", false,
+                LocalDateTime.of(2026, 1, 1, 9, 0, 0),
+                LocalDateTime.of(2026, 2, 1, 9, 0, 0),
+                List.of()
+        );
+
+        CestaHistoricoResponseDTO cesta2 = new CestaHistoricoResponseDTO(
+                2L, "Cesta 2", false,
+                LocalDateTime.of(2026, 2, 1, 9, 0, 0),
+                LocalDateTime.of(2026, 2, 15, 9, 0, 0),
+                List.of()
+        );
+
+        CestaHistoricoResponseDTO cesta3 = new CestaHistoricoResponseDTO(
+                3L, "Cesta 3", true,
+                LocalDateTime.of(2026, 2, 15, 9, 0, 0),
+                null,
+                List.of()
+        );
+
+        HistoricoCestaResponseDTO historico = new HistoricoCestaResponseDTO(
+                List.of(cesta1, cesta2, cesta3)
+        );
+
+        when(cestaService.obterHistoricoCestas()).thenReturn(historico);
+
+        // When & Then
+        mockMvc.perform(get("/api/admin/cesta/historico")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.cestas", hasSize(3)))
+                .andExpect(jsonPath("$.cestas[0].id").value(1))
+                .andExpect(jsonPath("$.cestas[1].id").value(2))
+                .andExpect(jsonPath("$.cestas[2].id").value(3))
+                .andExpect(jsonPath("$.cestas[2].ativa").value(true));
+
+        verify(cestaService).obterHistoricoCestas();
     }
 }
 

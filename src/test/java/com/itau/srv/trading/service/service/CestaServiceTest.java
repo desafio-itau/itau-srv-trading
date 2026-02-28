@@ -1,10 +1,7 @@
 package com.itau.srv.trading.service.service;
 
 import com.itau.common.library.exception.NegocioException;
-import com.itau.srv.trading.service.dto.cesta.CestaRecomendacaoAtivaResponseDTO;
-import com.itau.srv.trading.service.dto.cesta.CestaResponseDTO;
-import com.itau.srv.trading.service.dto.cesta.CriarTopFiveRequestDTO;
-import com.itau.srv.trading.service.dto.cesta.CriarTopFiveResponseDTO;
+import com.itau.srv.trading.service.dto.cesta.*;
 import com.itau.srv.trading.service.dto.itemcesta.ItemCestaRequestDTO;
 import com.itau.srv.trading.service.mapper.CestaMapper;
 import com.itau.srv.trading.service.model.CestaRecomendacao;
@@ -356,6 +353,191 @@ class CestaServiceTest {
 
         // Then
         verify(itemCestaRepository).findAllByCestaRecomendacao(cestaRecomendacao);
+    }
+
+    @Test
+    @DisplayName("Deve obter histórico de cestas com sucesso")
+    void deveObterHistoricoCestasComSucesso() {
+        // Given
+        CestaRecomendacao cesta1 = new CestaRecomendacao();
+        cesta1.setId(1L);
+        cesta1.setNome("Top Five - Janeiro 2026");
+        cesta1.setAtiva(false);
+        cesta1.setDataCriacao(LocalDateTime.of(2026, 1, 1, 9, 0));
+        cesta1.setDataDesativacao(LocalDateTime.of(2026, 2, 1, 9, 0));
+
+        CestaRecomendacao cesta2 = new CestaRecomendacao();
+        cesta2.setId(2L);
+        cesta2.setNome("Top Five - Fevereiro 2026");
+        cesta2.setAtiva(true);
+        cesta2.setDataCriacao(LocalDateTime.of(2026, 2, 1, 9, 0));
+
+        List<CestaRecomendacao> cestas = List.of(cesta1, cesta2);
+
+        when(cestaRecomendacaoRepository.findAll()).thenReturn(cestas);
+        when(itemCestaRepository.findAllByCestaRecomendacao(any())).thenReturn(itensCesta);
+
+        CestaHistoricoResponseDTO historicoDTO1 = new CestaHistoricoResponseDTO(
+                1L, "Top Five - Janeiro 2026", false,
+                LocalDateTime.of(2026, 1, 1, 9, 0),
+                LocalDateTime.of(2026, 2, 1, 9, 0),
+                List.of()
+        );
+
+        CestaHistoricoResponseDTO historicoDTO2 = new CestaHistoricoResponseDTO(
+                2L, "Top Five - Fevereiro 2026", true,
+                LocalDateTime.of(2026, 2, 1, 9, 0),
+                null,
+                List.of()
+        );
+
+        when(cestaMapper.mapearParaCestaHistoricoResponse(cesta1, itensCesta)).thenReturn(historicoDTO1);
+        when(cestaMapper.mapearParaCestaHistoricoResponse(cesta2, itensCesta)).thenReturn(historicoDTO2);
+
+        // When
+        HistoricoCestaResponseDTO resultado = cestaService.obterHistoricoCestas();
+
+        // Then
+        assertThat(resultado).isNotNull();
+        assertThat(resultado.cestas()).hasSize(2);
+        assertThat(resultado.cestas().get(0).id()).isEqualTo(1L);
+        assertThat(resultado.cestas().get(0).ativa()).isFalse();
+        assertThat(resultado.cestas().get(0).dataDesativacao()).isNotNull();
+        assertThat(resultado.cestas().get(1).id()).isEqualTo(2L);
+        assertThat(resultado.cestas().get(1).ativa()).isTrue();
+        assertThat(resultado.cestas().get(1).dataDesativacao()).isNull();
+
+        verify(cestaRecomendacaoRepository).findAll();
+        verify(itemCestaRepository, times(2)).findAllByCestaRecomendacao(any());
+        verify(cestaMapper, times(2)).mapearParaCestaHistoricoResponse(any(), anyList());
+    }
+
+    @Test
+    @DisplayName("Deve retornar histórico vazio quando não houver cestas")
+    void deveRetornarHistoricoVazioQuandoNaoHouverCestas() {
+        // Given
+        when(cestaRecomendacaoRepository.findAll()).thenReturn(List.of());
+
+        // When
+        HistoricoCestaResponseDTO resultado = cestaService.obterHistoricoCestas();
+
+        // Then
+        assertThat(resultado).isNotNull();
+        assertThat(resultado.cestas()).isEmpty();
+
+        verify(cestaRecomendacaoRepository).findAll();
+        verify(itemCestaRepository, never()).findAllByCestaRecomendacao(any());
+        verify(cestaMapper, never()).mapearParaCestaHistoricoResponse(any(), anyList());
+    }
+
+    @Test
+    @DisplayName("Deve buscar itens de cada cesta no histórico")
+    void deveBuscarItensDeCadaCestaNoHistorico() {
+        // Given
+        CestaRecomendacao cesta1 = new CestaRecomendacao();
+        cesta1.setId(1L);
+        cesta1.setNome("Cesta 1");
+        cesta1.setAtiva(false);
+
+        CestaRecomendacao cesta2 = new CestaRecomendacao();
+        cesta2.setId(2L);
+        cesta2.setNome("Cesta 2");
+        cesta2.setAtiva(true);
+
+        when(cestaRecomendacaoRepository.findAll()).thenReturn(List.of(cesta1, cesta2));
+        when(itemCestaRepository.findAllByCestaRecomendacao(any())).thenReturn(itensCesta);
+
+        CestaHistoricoResponseDTO historicoDTO = new CestaHistoricoResponseDTO(
+                1L, "Cesta", false, LocalDateTime.now(), LocalDateTime.now(), List.of()
+        );
+        when(cestaMapper.mapearParaCestaHistoricoResponse(any(), anyList())).thenReturn(historicoDTO);
+
+        // When
+        cestaService.obterHistoricoCestas();
+
+        // Then
+        verify(itemCestaRepository).findAllByCestaRecomendacao(cesta1);
+        verify(itemCestaRepository).findAllByCestaRecomendacao(cesta2);
+    }
+
+    @Test
+    @DisplayName("Deve ordenar cestas por data de criação no histórico")
+    void deveOrdenarCestasPorDataDeCriacaoNoHistorico() {
+        // Given
+        CestaRecomendacao cesta1 = new CestaRecomendacao();
+        cesta1.setId(1L);
+        cesta1.setNome("Cesta Antiga");
+        cesta1.setAtiva(false);
+        cesta1.setDataCriacao(LocalDateTime.of(2026, 1, 1, 9, 0));
+
+        CestaRecomendacao cesta2 = new CestaRecomendacao();
+        cesta2.setId(2L);
+        cesta2.setNome("Cesta Nova");
+        cesta2.setAtiva(true);
+        cesta2.setDataCriacao(LocalDateTime.of(2026, 2, 1, 9, 0));
+
+        List<CestaRecomendacao> cestas = List.of(cesta1, cesta2);
+
+        when(cestaRecomendacaoRepository.findAll()).thenReturn(cestas);
+        when(itemCestaRepository.findAllByCestaRecomendacao(any())).thenReturn(itensCesta);
+
+        CestaHistoricoResponseDTO historicoDTO1 = new CestaHistoricoResponseDTO(
+                1L, "Cesta Antiga", false,
+                LocalDateTime.of(2026, 1, 1, 9, 0),
+                LocalDateTime.of(2026, 2, 1, 9, 0),
+                List.of()
+        );
+
+        CestaHistoricoResponseDTO historicoDTO2 = new CestaHistoricoResponseDTO(
+                2L, "Cesta Nova", true,
+                LocalDateTime.of(2026, 2, 1, 9, 0),
+                null,
+                List.of()
+        );
+
+        when(cestaMapper.mapearParaCestaHistoricoResponse(cesta1, itensCesta)).thenReturn(historicoDTO1);
+        when(cestaMapper.mapearParaCestaHistoricoResponse(cesta2, itensCesta)).thenReturn(historicoDTO2);
+
+        // When
+        HistoricoCestaResponseDTO resultado = cestaService.obterHistoricoCestas();
+
+        // Then
+        assertThat(resultado.cestas()).hasSize(2);
+        assertThat(resultado.cestas().get(0).dataCriacao())
+                .isBefore(resultado.cestas().get(1).dataCriacao());
+    }
+
+    @Test
+    @DisplayName("Deve incluir data de desativação para cestas inativas no histórico")
+    void deveIncluirDataDeDesativacaoParaCestasInativasNoHistorico() {
+        // Given
+        CestaRecomendacao cestaInativa = new CestaRecomendacao();
+        cestaInativa.setId(1L);
+        cestaInativa.setNome("Cesta Desativada");
+        cestaInativa.setAtiva(false);
+        cestaInativa.setDataCriacao(LocalDateTime.of(2026, 1, 1, 9, 0));
+        cestaInativa.setDataDesativacao(LocalDateTime.of(2026, 2, 1, 9, 0));
+
+        when(cestaRecomendacaoRepository.findAll()).thenReturn(List.of(cestaInativa));
+        when(itemCestaRepository.findAllByCestaRecomendacao(cestaInativa)).thenReturn(itensCesta);
+
+        CestaHistoricoResponseDTO historicoDTO = new CestaHistoricoResponseDTO(
+                1L, "Cesta Desativada", false,
+                LocalDateTime.of(2026, 1, 1, 9, 0),
+                LocalDateTime.of(2026, 2, 1, 9, 0),
+                List.of()
+        );
+
+        when(cestaMapper.mapearParaCestaHistoricoResponse(cestaInativa, itensCesta)).thenReturn(historicoDTO);
+
+        // When
+        HistoricoCestaResponseDTO resultado = cestaService.obterHistoricoCestas();
+
+        // Then
+        assertThat(resultado.cestas()).hasSize(1);
+        assertThat(resultado.cestas().get(0).dataDesativacao()).isNotNull();
+        assertThat(resultado.cestas().get(0).dataDesativacao())
+                .isEqualTo(LocalDateTime.of(2026, 2, 1, 9, 0));
     }
 }
 

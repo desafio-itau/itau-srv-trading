@@ -1,10 +1,7 @@
 package com.itau.srv.trading.service.controller;
 
 import com.itau.common.library.generic.ControllerGenerico;
-import com.itau.srv.trading.service.dto.cesta.CestaRecomendacaoAtivaResponseDTO;
-import com.itau.srv.trading.service.dto.cesta.CestaResponseDTO;
-import com.itau.srv.trading.service.dto.cesta.CriarTopFiveRequestDTO;
-import com.itau.srv.trading.service.dto.cesta.CriarTopFiveResponseDTO;
+import com.itau.srv.trading.service.dto.cesta.*;
 import com.itau.srv.trading.service.dto.cotacaob3.CotacaoB3;
 import com.itau.srv.trading.service.service.CestaService;
 import jakarta.validation.Valid;
@@ -63,5 +60,12 @@ public class CestaController implements ControllerGenerico {
         log.info("Buscando cesta ativa.");
 
         return ResponseEntity.ok(cestaService.obterCestaAtiva());
+    }
+
+    @GetMapping("/cesta/historico")
+    public ResponseEntity<HistoricoCestaResponseDTO> obterHistoricoCestas() {
+        log.info("Buscando histórico de cestas.");
+
+        return ResponseEntity.ok(cestaService.obterHistoricoCestas());
     }
 }
