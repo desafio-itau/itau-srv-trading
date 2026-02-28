@@ -37,4 +37,9 @@ external-endpoints:
     url: ${ITAU_SRV_CONTA_GRAFICA_URL:http://localhost:8080/api/contas-graficas}
     connection-timeout: 3000
     read-timeout: 8000
+  itau-srv-clientes:
+    name: itau-srv-clientes
+    url: ${ITAU_SRV_CLIENTES_URL:http://localhost:8080/api/clientes}
+    connection-timeout: 3000
+    read-timeout: 8000
 
