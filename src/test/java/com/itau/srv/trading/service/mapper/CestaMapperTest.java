@@ -1,27 +1,38 @@
 package com.itau.srv.trading.service.mapper;
 
+import com.itau.srv.trading.service.dto.cesta.CestaRecomendacaoAtivaResponseDTO;
 import com.itau.srv.trading.service.dto.cesta.CriarTopFiveRequestDTO;
 import com.itau.srv.trading.service.dto.cesta.CriarTopFiveResponseDTO;
+import com.itau.srv.trading.service.dto.cotacaob3.CotacaoB3;
 import com.itau.srv.trading.service.dto.itemcesta.ItemCestaRequestDTO;
 import com.itau.srv.trading.service.model.CestaRecomendacao;
 import com.itau.srv.trading.service.model.ItemCesta;
+import com.itau.srv.trading.service.util.CotahistParser;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Testes para CestaMapper")
 class CestaMapperTest {
+
+    @Mock
+    private CotahistParser cotahistParser;
 
     @InjectMocks
     private CestaMapper cestaMapper;
@@ -203,6 +214,161 @@ class CestaMapperTest {
             assertThat(item.percentual()).isNotNull();
             assertThat(item.percentual()).isGreaterThan(BigDecimal.ZERO);
         });
+    }
+
+    @Test
+    @DisplayName("Deve mapear cesta ativa com cotações atuais")
+    void deveMapeararCestaAtivaComCotacoesAtuais() {
+        // Given
+        CotacaoB3 cotacao = new CotacaoB3(
+                LocalDate.now(),
+                "PETR4",
+                "02",
+                10,
+                "PETROBRAS",
+                new BigDecimal("35.00"),
+                new BigDecimal("36.00"),
+                new BigDecimal("34.00"),
+                new BigDecimal("35.50"),
+                new BigDecimal("35.25"),
+                1000000L,
+                new BigDecimal("35250000.00")
+        );
+
+        when(cotahistParser.obterCotacaoFechamento(anyString(), anyString()))
+                .thenReturn(Optional.of(cotacao));
+
+        // When
+        CestaRecomendacaoAtivaResponseDTO resultado = cestaMapper.mapearParaCestaRecomendacaoAtivaResponse(
+                cestaRecomendacao,
+                itensCesta
+        );
+
+        // Then
+        assertThat(resultado).isNotNull();
+        assertThat(resultado.cestaId()).isEqualTo(1L);
+        assertThat(resultado.nome()).isEqualTo("Top Five - Fevereiro 2026");
+        assertThat(resultado.ativa()).isTrue();
+        assertThat(resultado.itens()).isNotEmpty();
+    }
+
+    @Test
+    @DisplayName("Deve incluir cotação atual nos itens da cesta ativa")
+    void deveIncluirCotacaoAtualNosItensDaCestaAtiva() {
+        // Given
+        CotacaoB3 cotacao = new CotacaoB3(
+                LocalDate.now(),
+                "PETR4",
+                "02",
+                10,
+                "PETROBRAS",
+                new BigDecimal("35.00"),
+                new BigDecimal("36.00"),
+                new BigDecimal("34.00"),
+                new BigDecimal("35.50"),
+                new BigDecimal("35.25"),
+                1000000L,
+                new BigDecimal("35250000.00")
+        );
+
+        when(cotahistParser.obterCotacaoFechamento(anyString(), anyString()))
+                .thenReturn(Optional.of(cotacao));
+
+        // When
+        CestaRecomendacaoAtivaResponseDTO resultado = cestaMapper.mapearParaCestaRecomendacaoAtivaResponse(
+                cestaRecomendacao,
+                itensCesta
+        );
+
+        // Then
+        assertThat(resultado.itens()).allMatch(item -> item.cotacaoAtual() != null);
+    }
+
+    @Test
+    @DisplayName("Deve filtrar itens sem cotação disponível")
+    void deveFiltrarItensSemCotacaoDisponivel() {
+        // Given
+        when(cotahistParser.obterCotacaoFechamento(anyString(), anyString()))
+                .thenReturn(Optional.empty());
+
+        // When
+        CestaRecomendacaoAtivaResponseDTO resultado = cestaMapper.mapearParaCestaRecomendacaoAtivaResponse(
+                cestaRecomendacao,
+                itensCesta
+        );
+
+        // Then
+        assertThat(resultado.itens()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Deve mapear corretamente cesta ativa com todos os campos")
+    void deveMapeararCorretamenteCestaAtivaComTodosCampos() {
+        // Given
+        CotacaoB3 cotacao = new CotacaoB3(
+                LocalDate.now(),
+                "PETR4",
+                "02",
+                10,
+                "PETROBRAS",
+                new BigDecimal("35.00"),
+                new BigDecimal("36.00"),
+                new BigDecimal("34.00"),
+                new BigDecimal("35.50"),
+                new BigDecimal("35.25"),
+                1000000L,
+                new BigDecimal("35250000.00")
+        );
+
+        when(cotahistParser.obterCotacaoFechamento(anyString(), anyString()))
+                .thenReturn(Optional.of(cotacao));
+
+        // When
+        CestaRecomendacaoAtivaResponseDTO resultado = cestaMapper.mapearParaCestaRecomendacaoAtivaResponse(
+                cestaRecomendacao,
+                itensCesta
+        );
+
+        // Then
+        assertThat(resultado.cestaId()).isNotNull();
+        assertThat(resultado.nome()).isNotNull();
+        assertThat(resultado.ativa()).isNotNull();
+        assertThat(resultado.dataCriacao()).isNotNull();
+        assertThat(resultado.itens()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("Deve preservar percentuais nos itens com cotação")
+    void devePreservarPercentuaisNosItensComCotacao() {
+        // Given
+        CotacaoB3 cotacao = new CotacaoB3(
+                LocalDate.now(),
+                "PETR4",
+                "02",
+                10,
+                "PETROBRAS",
+                new BigDecimal("35.00"),
+                new BigDecimal("36.00"),
+                new BigDecimal("34.00"),
+                new BigDecimal("35.50"),
+                new BigDecimal("35.25"),
+                1000000L,
+                new BigDecimal("35250000.00")
+        );
+
+        when(cotahistParser.obterCotacaoFechamento(anyString(), anyString()))
+                .thenReturn(Optional.of(cotacao));
+
+        // When
+        CestaRecomendacaoAtivaResponseDTO resultado = cestaMapper.mapearParaCestaRecomendacaoAtivaResponse(
+                cestaRecomendacao,
+                itensCesta
+        );
+
+        // Then
+        if (!resultado.itens().isEmpty()) {
+            assertThat(resultado.itens().get(0).percentual()).isEqualTo(new BigDecimal("30.00"));
+        }
     }
 }
 

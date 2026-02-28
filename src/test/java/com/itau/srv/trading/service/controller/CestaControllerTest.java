@@ -4,11 +4,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.itau.common.library.exception.NegocioException;
 import com.itau.common.library.handler.GlobalExceptionHandler;
+import com.itau.srv.trading.service.dto.cesta.CestaRecomendacaoAtivaResponseDTO;
 import com.itau.srv.trading.service.dto.cesta.CriarTopFiveRequestDTO;
 import com.itau.srv.trading.service.dto.cesta.CriarTopFiveResponseDTO;
 import com.itau.srv.trading.service.dto.cotacaob3.CotacaoB3;
 import com.itau.srv.trading.service.dto.itemcesta.ItemCestaRequestDTO;
 import com.itau.srv.trading.service.dto.itemcesta.ItemCestaResponseDTO;
+import com.itau.srv.trading.service.dto.itemcesta.ItemCotacaoAtualResponseDTO;
 import com.itau.srv.trading.service.service.CestaService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -362,6 +364,112 @@ class CestaControllerTest {
                 .andExpect(jsonPath("$.nomeEmpresa").value("VALE"));
 
         verify(cestaService).obterCotacaoFechamento("VALE3");
+    }
+
+    @Test
+    @DisplayName("Deve obter cesta ativa com sucesso")
+    void deveObterCestaAtivaComSucesso() throws Exception {
+        // Given
+        List<ItemCotacaoAtualResponseDTO> itensComCotacao = List.of(
+                new ItemCotacaoAtualResponseDTO("PETR4", new BigDecimal("30.00"), new BigDecimal("35.50")),
+                new ItemCotacaoAtualResponseDTO("VALE3", new BigDecimal("25.00"), new BigDecimal("62.50")),
+                new ItemCotacaoAtualResponseDTO("ITUB4", new BigDecimal("20.00"), new BigDecimal("30.00")),
+                new ItemCotacaoAtualResponseDTO("BBDC4", new BigDecimal("15.00"), new BigDecimal("15.00")),
+                new ItemCotacaoAtualResponseDTO("WEGE3", new BigDecimal("10.00"), new BigDecimal("40.00"))
+        );
+
+        CestaRecomendacaoAtivaResponseDTO cestaAtiva = new CestaRecomendacaoAtivaResponseDTO(
+                1L,
+                "Top Five - Fevereiro 2026",
+                true,
+                LocalDateTime.of(2026, 2, 1, 9, 0, 0),
+                itensComCotacao
+        );
+
+        when(cestaService.obterCestaAtiva()).thenReturn(cestaAtiva);
+
+        // When & Then
+        mockMvc.perform(get("/api/admin/cesta/atual")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.cestaId").value(1))
+                .andExpect(jsonPath("$.nome").value("Top Five - Fevereiro 2026"))
+                .andExpect(jsonPath("$.ativa").value(true))
+                .andExpect(jsonPath("$.itens", hasSize(5)))
+                .andExpect(jsonPath("$.itens[0].ticker").value("PETR4"))
+                .andExpect(jsonPath("$.itens[0].percentual").value(30.00))
+                .andExpect(jsonPath("$.itens[0].cotacaoAtual").value(35.50));
+
+        verify(cestaService).obterCestaAtiva();
+    }
+
+    @Test
+    @DisplayName("Deve retornar erro quando não houver cesta ativa")
+    void deveRetornarErroQuandoNaoHouverCestaAtiva() throws Exception {
+        // Given
+        when(cestaService.obterCestaAtiva()).thenThrow(new NegocioException("CESTA_NAO_ENCONTRADA"));
+
+        // When & Then
+        mockMvc.perform(get("/api/admin/cesta/atual")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+
+        verify(cestaService).obterCestaAtiva();
+    }
+
+    @Test
+    @DisplayName("Deve incluir cotações atuais dos ativos na resposta da cesta ativa")
+    void deveIncluirCotacoesAtuaisDosAtivosNaRespostaDaCestaAtiva() throws Exception {
+        // Given
+        List<ItemCotacaoAtualResponseDTO> itensComCotacao = List.of(
+                new ItemCotacaoAtualResponseDTO("PETR4", new BigDecimal("30.00"), new BigDecimal("35.50"))
+        );
+
+        CestaRecomendacaoAtivaResponseDTO cestaAtiva = new CestaRecomendacaoAtivaResponseDTO(
+                1L,
+                "Top Five - Fevereiro 2026",
+                true,
+                LocalDateTime.now(),
+                itensComCotacao
+        );
+
+        when(cestaService.obterCestaAtiva()).thenReturn(cestaAtiva);
+
+        // When & Then
+        mockMvc.perform(get("/api/admin/cesta/atual")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.itens[0].cotacaoAtual").exists())
+                .andExpect(jsonPath("$.itens[0].cotacaoAtual").value(35.50));
+
+        verify(cestaService).obterCestaAtiva();
+    }
+
+    @Test
+    @DisplayName("Deve retornar todos os campos da cesta ativa")
+    void deveRetornarTodosCamposDaCestaAtiva() throws Exception {
+        // Given
+        CestaRecomendacaoAtivaResponseDTO cestaAtiva = new CestaRecomendacaoAtivaResponseDTO(
+                1L,
+                "Top Five - Fevereiro 2026",
+                true,
+                LocalDateTime.now(),
+                List.of()
+        );
+
+        when(cestaService.obterCestaAtiva()).thenReturn(cestaAtiva);
+
+        // When & Then
+        mockMvc.perform(get("/api/admin/cesta/atual")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.cestaId").exists())
+                .andExpect(jsonPath("$.nome").exists())
+                .andExpect(jsonPath("$.ativa").exists())
+                .andExpect(jsonPath("$.dataCriacao").exists())
+                .andExpect(jsonPath("$.itens").exists());
+
+        verify(cestaService).obterCestaAtiva();
     }
 }
 

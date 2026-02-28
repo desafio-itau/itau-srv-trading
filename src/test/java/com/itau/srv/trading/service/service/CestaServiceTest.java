@@ -1,6 +1,7 @@
 package com.itau.srv.trading.service.service;
 
 import com.itau.common.library.exception.NegocioException;
+import com.itau.srv.trading.service.dto.cesta.CestaRecomendacaoAtivaResponseDTO;
 import com.itau.srv.trading.service.dto.cesta.CestaResponseDTO;
 import com.itau.srv.trading.service.dto.cesta.CriarTopFiveRequestDTO;
 import com.itau.srv.trading.service.dto.cesta.CriarTopFiveResponseDTO;
@@ -9,6 +10,7 @@ import com.itau.srv.trading.service.mapper.CestaMapper;
 import com.itau.srv.trading.service.model.CestaRecomendacao;
 import com.itau.srv.trading.service.model.ItemCesta;
 import com.itau.srv.trading.service.repository.CestaRecomendacaoRepository;
+import com.itau.srv.trading.service.repository.ItemCestaRepository;
 import com.itau.srv.trading.service.util.CotahistParser;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -42,6 +44,9 @@ class CestaServiceTest {
 
     @Mock
     private CestaRecomendacaoRepository cestaRecomendacaoRepository;
+
+    @Mock
+    private ItemCestaRepository itemCestaRepository;
 
     @Mock
     private CotahistParser cotahistParser;
@@ -280,6 +285,77 @@ class CestaServiceTest {
         assertThatThrownBy(() -> cestaService.criarOuAlterarCesta(requestInvalido))
                 .isInstanceOf(NegocioException.class)
                 .hasMessage("QUANTIDADE_ATIVOS_INVALIDA");
+    }
+
+    @Test
+    @DisplayName("Deve obter cesta ativa com sucesso")
+    void deveObterCestaAtivaComSucesso() {
+        // Given
+        when(cestaRecomendacaoRepository.findByAtivaTrue()).thenReturn(Optional.of(cestaRecomendacao));
+        when(itemCestaRepository.findAllByCestaRecomendacao(cestaRecomendacao)).thenReturn(itensCesta);
+
+        CestaRecomendacaoAtivaResponseDTO responseDTO = new CestaRecomendacaoAtivaResponseDTO(
+                1L,
+                "Top Five - Fevereiro 2026",
+                true,
+                LocalDateTime.now(),
+                List.of()
+        );
+        when(cestaMapper.mapearParaCestaRecomendacaoAtivaResponse(cestaRecomendacao, itensCesta))
+                .thenReturn(responseDTO);
+
+        // When
+        CestaRecomendacaoAtivaResponseDTO resultado = cestaService.obterCestaAtiva();
+
+        // Then
+        assertThat(resultado).isNotNull();
+        assertThat(resultado.cestaId()).isEqualTo(1L);
+        assertThat(resultado.nome()).isEqualTo("Top Five - Fevereiro 2026");
+        assertThat(resultado.ativa()).isTrue();
+
+        verify(cestaRecomendacaoRepository).findByAtivaTrue();
+        verify(itemCestaRepository).findAllByCestaRecomendacao(cestaRecomendacao);
+        verify(cestaMapper).mapearParaCestaRecomendacaoAtivaResponse(cestaRecomendacao, itensCesta);
+    }
+
+    @Test
+    @DisplayName("Deve lançar exceção quando não encontrar cesta ativa")
+    void deveLancarExcecaoQuandoNaoEncontrarCestaAtiva() {
+        // Given
+        when(cestaRecomendacaoRepository.findByAtivaTrue()).thenReturn(Optional.empty());
+
+        // When & Then
+        assertThatThrownBy(() -> cestaService.obterCestaAtiva())
+                .isInstanceOf(NegocioException.class)
+                .hasMessage("CESTA_NAO_ENCONTRADA");
+
+        verify(cestaRecomendacaoRepository).findByAtivaTrue();
+        verify(itemCestaRepository, never()).findAllByCestaRecomendacao(any());
+        verify(cestaMapper, never()).mapearParaCestaRecomendacaoAtivaResponse(any(), anyList());
+    }
+
+    @Test
+    @DisplayName("Deve buscar itens da cesta ao obter cesta ativa")
+    void deveBuscarItensDaCestaAoObterCestaAtiva() {
+        // Given
+        when(cestaRecomendacaoRepository.findByAtivaTrue()).thenReturn(Optional.of(cestaRecomendacao));
+        when(itemCestaRepository.findAllByCestaRecomendacao(cestaRecomendacao)).thenReturn(itensCesta);
+
+        CestaRecomendacaoAtivaResponseDTO responseDTO = new CestaRecomendacaoAtivaResponseDTO(
+                1L,
+                "Top Five - Fevereiro 2026",
+                true,
+                LocalDateTime.now(),
+                List.of()
+        );
+        when(cestaMapper.mapearParaCestaRecomendacaoAtivaResponse(cestaRecomendacao, itensCesta))
+                .thenReturn(responseDTO);
+
+        // When
+        cestaService.obterCestaAtiva();
+
+        // Then
+        verify(itemCestaRepository).findAllByCestaRecomendacao(cestaRecomendacao);
     }
 }
 
