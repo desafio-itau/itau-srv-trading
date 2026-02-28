@@ -30,3 +30,11 @@ spring:
 
 server:
   port: 8081
+
+external-endpoints:
+  itau-srv-conta-grafica:
+    name: itau-srv-conta-grafica
+    url: ${ITAU_SRV_CONTA_GRAFICA_URL:http://localhost:8080/api/contas-graficas}
+    connection-timeout: 3000
+    read-timeout: 8000
+
