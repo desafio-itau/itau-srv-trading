@@ -1,0 +1,3 @@
+spring:
+  application:
+    name: Servico de Trading
