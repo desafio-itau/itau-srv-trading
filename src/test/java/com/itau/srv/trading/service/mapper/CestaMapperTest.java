@@ -1,5 +1,6 @@
 package com.itau.srv.trading.service.mapper;
 
+import com.itau.srv.trading.service.dto.cesta.CestaHistoricoResponseDTO;
 import com.itau.srv.trading.service.dto.cesta.CestaRecomendacaoAtivaResponseDTO;
 import com.itau.srv.trading.service.dto.cesta.CriarTopFiveRequestDTO;
 import com.itau.srv.trading.service.dto.cesta.CriarTopFiveResponseDTO;
@@ -369,6 +370,115 @@ class CestaMapperTest {
         if (!resultado.itens().isEmpty()) {
             assertThat(resultado.itens().get(0).percentual()).isEqualTo(new BigDecimal("30.00"));
         }
+    }
+
+    @Test
+    @DisplayName("Deve mapear cesta histórico com todos os campos")
+    void deveMapeararCestaHistoricoComTodosCampos() {
+        // Given
+        cestaRecomendacao.setDataDesativacao(LocalDateTime.of(2026, 3, 1, 9, 0, 0));
+
+        // When
+        CestaHistoricoResponseDTO resultado = cestaMapper.mapearParaCestaHistoricoResponse(
+                cestaRecomendacao,
+                itensCesta
+        );
+
+        // Then
+        assertThat(resultado).isNotNull();
+        assertThat(resultado.id()).isEqualTo(1L);
+        assertThat(resultado.nome()).isEqualTo("Top Five - Fevereiro 2026");
+        assertThat(resultado.ativa()).isTrue();
+        assertThat(resultado.dataCriacao()).isEqualTo(LocalDateTime.of(2026, 2, 1, 9, 0, 0));
+        assertThat(resultado.dataDesativacao()).isEqualTo(LocalDateTime.of(2026, 3, 1, 9, 0, 0));
+        assertThat(resultado.itens()).hasSize(5);
+    }
+
+    @Test
+    @DisplayName("Deve mapear cesta histórico sem data de desativação")
+    void deveMapeararCestaHistoricoSemDataDeDesativacao() {
+        // Given - cesta ativa sem data de desativação
+
+        // When
+        CestaHistoricoResponseDTO resultado = cestaMapper.mapearParaCestaHistoricoResponse(
+                cestaRecomendacao,
+                itensCesta
+        );
+
+        // Then
+        assertThat(resultado).isNotNull();
+        assertThat(resultado.dataDesativacao()).isNull();
+        assertThat(resultado.ativa()).isTrue();
+    }
+
+    @Test
+    @DisplayName("Deve mapear itens da cesta no histórico")
+    void deveMapeararItensDaCestaNoHistorico() {
+        // When
+        CestaHistoricoResponseDTO resultado = cestaMapper.mapearParaCestaHistoricoResponse(
+                cestaRecomendacao,
+                itensCesta
+        );
+
+        // Then
+        assertThat(resultado.itens()).hasSize(5);
+        assertThat(resultado.itens().get(0).ticker()).isEqualTo("PETR4");
+        assertThat(resultado.itens().get(0).percentual()).isEqualTo(new BigDecimal("30.00"));
+        assertThat(resultado.itens().get(1).ticker()).isEqualTo("VALE3");
+        assertThat(resultado.itens().get(1).percentual()).isEqualTo(new BigDecimal("25.00"));
+    }
+
+    @Test
+    @DisplayName("Deve mapear cesta histórico inativa com data de desativação")
+    void deveMapeararCestaHistoricoInativaComDataDeDesativacao() {
+        // Given
+        cestaRecomendacao.setAtiva(false);
+        cestaRecomendacao.setDataDesativacao(LocalDateTime.of(2026, 2, 28, 10, 0, 0));
+
+        // When
+        CestaHistoricoResponseDTO resultado = cestaMapper.mapearParaCestaHistoricoResponse(
+                cestaRecomendacao,
+                itensCesta
+        );
+
+        // Then
+        assertThat(resultado.ativa()).isFalse();
+        assertThat(resultado.dataDesativacao()).isNotNull();
+        assertThat(resultado.dataDesativacao()).isEqualTo(LocalDateTime.of(2026, 2, 28, 10, 0, 0));
+    }
+
+    @Test
+    @DisplayName("Deve preservar ordem dos itens no mapeamento do histórico")
+    void devePreservarOrdemDosItensNoMapeamentoDoHistorico() {
+        // When
+        CestaHistoricoResponseDTO resultado = cestaMapper.mapearParaCestaHistoricoResponse(
+                cestaRecomendacao,
+                itensCesta
+        );
+
+        // Then
+        List<String> tickersEsperados = List.of("PETR4", "VALE3", "ITUB4", "BBDC4", "WEGE3");
+        List<String> tickersResultado = resultado.itens().stream()
+                .map(item -> item.ticker())
+                .toList();
+
+        assertThat(tickersResultado).containsExactlyElementsOf(tickersEsperados);
+    }
+
+    @Test
+    @DisplayName("Deve mapear cesta histórico vazia de itens")
+    void deveMapeararCestaHistoricoVaziaDeItens() {
+        // Given
+        List<ItemCesta> itensVazio = List.of();
+
+        // When
+        CestaHistoricoResponseDTO resultado = cestaMapper.mapearParaCestaHistoricoResponse(
+                cestaRecomendacao,
+                itensVazio
+        );
+
+        // Then
+        assertThat(resultado.itens()).isEmpty();
     }
 }
 

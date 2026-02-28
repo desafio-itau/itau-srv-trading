@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -81,6 +82,27 @@ public class CestaService {
         log.info("Itens da cesta encontrados com cotações: {}.", itens);
 
         return cestaMapper.mapearParaCestaRecomendacaoAtivaResponse(cestaRecomendacao, itens);
+    }
+
+    @Transactional(readOnly = true)
+    public HistoricoCestaResponseDTO obterHistoricoCestas() {
+        HistoricoCestaResponseDTO historico = new HistoricoCestaResponseDTO(new ArrayList<>());
+
+        List<CestaRecomendacao> cestas = cestaRecomendacaoRepository.findAll();
+
+        log.info("Cestas encontradas: {}.", cestas.size());
+
+        for (CestaRecomendacao cesta : cestas) {
+            log.info("Procurando itens da cesta: {}.", cesta.getId());
+
+            List<ItemCesta> itens = itemCestaRepository.findAllByCestaRecomendacao(cesta);
+
+            log.info("Itens da cesta encontrados.");
+
+            historico.cestas().add(cestaMapper.mapearParaCestaHistoricoResponse(cesta, itens));
+        }
+
+        return historico;
     }
 
     private AlterarTopFiveResponseDTO alterarCestaComRebalanceamento(

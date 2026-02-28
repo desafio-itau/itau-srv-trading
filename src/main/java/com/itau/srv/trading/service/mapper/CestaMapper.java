@@ -1,8 +1,6 @@
 package com.itau.srv.trading.service.mapper;
 
-import com.itau.srv.trading.service.dto.cesta.CestaRecomendacaoAtivaResponseDTO;
-import com.itau.srv.trading.service.dto.cesta.CriarTopFiveRequestDTO;
-import com.itau.srv.trading.service.dto.cesta.CriarTopFiveResponseDTO;
+import com.itau.srv.trading.service.dto.cesta.*;
 import com.itau.srv.trading.service.dto.itemcesta.ItemCestaResponseDTO;
 import com.itau.srv.trading.service.dto.itemcesta.ItemCotacaoAtualResponseDTO;
 import com.itau.srv.trading.service.model.CestaRecomendacao;
@@ -49,6 +47,17 @@ public class CestaMapper {
                 cesta.getAtiva(),
                 cesta.getDataCriacao(),
                 mapearParaItemCotacaoAtualResponse(itens)
+        );
+    }
+
+    public CestaHistoricoResponseDTO mapearParaCestaHistoricoResponse(CestaRecomendacao cesta, List<ItemCesta> itens) {
+        return new CestaHistoricoResponseDTO(
+                cesta.getId(),
+                cesta.getNome(),
+                cesta.getAtiva(),
+                cesta.getDataCriacao(),
+                cesta.getDataDesativacao(),
+                mapearParaItemCestaResponse(itens)
         );
     }
 
