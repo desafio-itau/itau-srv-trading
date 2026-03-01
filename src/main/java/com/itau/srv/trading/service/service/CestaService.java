@@ -2,14 +2,12 @@ package com.itau.srv.trading.service.service;
 
 import com.itau.common.library.exception.NegocioException;
 import com.itau.srv.trading.service.dto.cesta.*;
-import com.itau.srv.trading.service.dto.cotacaob3.CotacaoB3;
 import com.itau.srv.trading.service.dto.itemcesta.ItemCestaRequestDTO;
 import com.itau.srv.trading.service.mapper.CestaMapper;
 import com.itau.srv.trading.service.model.CestaRecomendacao;
 import com.itau.srv.trading.service.model.ItemCesta;
 import com.itau.srv.trading.service.repository.CestaRecomendacaoRepository;
 import com.itau.srv.trading.service.repository.ItemCestaRepository;
-import com.itau.srv.trading.service.util.CotahistParser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -28,7 +26,6 @@ public class CestaService {
     private final CestaMapper cestaMapper;
     private final ItemCestaService itemCestaService;
     private final CestaRecomendacaoRepository cestaRecomendacaoRepository;
-    private final CotahistParser cotahistParser;
     private final ItemCestaRepository itemCestaRepository;
 
     @Transactional

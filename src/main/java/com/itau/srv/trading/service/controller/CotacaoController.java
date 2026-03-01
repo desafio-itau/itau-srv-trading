@@ -6,10 +6,7 @@ import com.itau.srv.trading.service.service.CotacaoService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -21,20 +18,21 @@ public class CotacaoController {
 
     private final CotacaoService cotacaoService;
 
+    @PostMapping
+    public ResponseEntity<List<CotacaoB3>> salvarCotacoesDoTxt() {
+        log.info("Iniciando processo para salvar cotações no banco de dados.");
+
+        return ResponseEntity.ok(cotacaoService.salvarCotacoes());
+    }
+
     @GetMapping("/{ticker}")
     public ResponseEntity<CotacaoB3> obterCotacaoFechamento(@PathVariable String ticker) {
         log.info("Buscando cotação de fechamento para ticker: {}", ticker);
 
-        return ResponseEntity
-                .ok(cotacaoService.obterCotacaoFechamento(ticker)
-                        .orElseThrow(() -> {
-                            log.error("Cotação não encontrada para ticker: {}", ticker);
-                            return new RecursoNaoEncontradoException("COTACAO_NAO_ENCONTRADA");
-                        })
-                );
+        return ResponseEntity.ok(cotacaoService.obterCotacaoFechamento(ticker));
     }
 
-    @GetMapping()
+    @GetMapping
     public ResponseEntity<List<CotacaoB3>> listarCotacoes() {
         log.info("Buscando cotações da B3.");
 
