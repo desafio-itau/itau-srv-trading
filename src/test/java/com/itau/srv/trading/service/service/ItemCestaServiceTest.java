@@ -65,16 +65,11 @@ class ItemCestaServiceTest {
         cotacaoValida = new CotacaoB3(
                 LocalDate.now(),
                 "PETR4",
-                "02",
                 10,
-                "PETROBRAS",
                 new BigDecimal("35.00"),
                 new BigDecimal("36.00"),
                 new BigDecimal("34.00"),
-                new BigDecimal("35.50"),
-                new BigDecimal("35.25"),
-                1000000L,
-                new BigDecimal("35250000.00")
+                new BigDecimal("35.50")
         );
     }
 

@@ -6,15 +6,10 @@ import java.time.LocalDate;
 public record CotacaoB3(
         LocalDate dataPregao,
         String ticker,
-        String codigoBDI,
         Integer tipoMercado,
-        String nomeEmpresa,
         BigDecimal precoAbertura,
         BigDecimal precoMaximo,
         BigDecimal precoMinimo,
-        BigDecimal precoFechamento,
-        BigDecimal precoMedio,
-        Long quantidadeNegociada,
-        BigDecimal volumeNegociado
+        BigDecimal precoFechamento
 ) {
 }
