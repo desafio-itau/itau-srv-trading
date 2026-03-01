@@ -42,4 +42,9 @@ external-endpoints:
     url: ${ITAU_SRV_CLIENTES_URL:http://localhost:8080/api/clientes}
     connection-timeout: 3000
     read-timeout: 8000
+  itau-srv-custodia-master:
+    name: itau-srv-custodia-master
+    url: ${ITAU_SRV_CUSTODIA_URL:http://localhost:8082/api/custodia-master}
+    connection-timeout: 3000
+    read-timeout: 8000
 
