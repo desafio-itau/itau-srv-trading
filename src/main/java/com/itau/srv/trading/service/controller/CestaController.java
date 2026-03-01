@@ -5,7 +5,9 @@ import com.itau.srv.trading.service.dto.cesta.CestaRecomendacaoAtivaResponseDTO;
 import com.itau.srv.trading.service.dto.cesta.CestaResponseDTO;
 import com.itau.srv.trading.service.dto.cesta.CriarTopFiveRequestDTO;
 import com.itau.srv.trading.service.dto.cesta.HistoricoCestaResponseDTO;
+import com.itau.srv.trading.service.dto.custodiamaster.CustodiaMasterResponseDTO;
 import com.itau.srv.trading.service.service.CestaService;
+import com.itau.srv.trading.service.service.CustodiaMaterService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 public class CestaController implements ControllerGenerico {
 
     private final CestaService cestaService;
+    private final CustodiaMaterService custodiaMaterService;
 
     @PostMapping("/cesta")
     public ResponseEntity<CestaResponseDTO> criarOuAlterarCesta(@RequestBody @Valid CriarTopFiveRequestDTO dto) {
@@ -44,5 +47,10 @@ public class CestaController implements ControllerGenerico {
         log.info("Buscando histórico de cestas.");
 
         return ResponseEntity.ok(cestaService.obterHistoricoCestas());
+    }
+
+    @GetMapping("/conta-master/custodia")
+    public ResponseEntity<CustodiaMasterResponseDTO> obterCustodiaMaster() {
+        return ResponseEntity.ok(custodiaMaterService.buscarCustodiaMaster());
     }
 }
