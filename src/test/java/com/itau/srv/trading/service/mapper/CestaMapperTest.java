@@ -1,7 +1,7 @@
 package com.itau.srv.trading.service.mapper;
 
 import com.itau.srv.trading.service.dto.cesta.CestaHistoricoResponseDTO;
-import com.itau.srv.trading.service.dto.cesta.CestaRecomendacaoAtivaResponseDTO;
+import com.itau.srv.trading.service.dto.cesta.CestaRecomendacaoResponseDTO;
 import com.itau.srv.trading.service.dto.cesta.CriarTopFiveRequestDTO;
 import com.itau.srv.trading.service.dto.cesta.CriarTopFiveResponseDTO;
 import com.itau.srv.trading.service.dto.cotacaob3.CotacaoB3;
@@ -235,7 +235,7 @@ class CestaMapperTest {
                 .thenReturn(Optional.of(cotacao));
 
         // When
-        CestaRecomendacaoAtivaResponseDTO resultado = cestaMapper.mapearParaCestaRecomendacaoAtivaResponse(
+        CestaRecomendacaoResponseDTO resultado = cestaMapper.mapearParaCestaRecomendacaoAtivaResponse(
                 cestaRecomendacao,
                 itensCesta
         );
@@ -266,7 +266,7 @@ class CestaMapperTest {
                 .thenReturn(Optional.of(cotacao));
 
         // When
-        CestaRecomendacaoAtivaResponseDTO resultado = cestaMapper.mapearParaCestaRecomendacaoAtivaResponse(
+        CestaRecomendacaoResponseDTO resultado = cestaMapper.mapearParaCestaRecomendacaoAtivaResponse(
                 cestaRecomendacao,
                 itensCesta
         );
@@ -283,7 +283,7 @@ class CestaMapperTest {
                 .thenReturn(Optional.empty());
 
         // When
-        CestaRecomendacaoAtivaResponseDTO resultado = cestaMapper.mapearParaCestaRecomendacaoAtivaResponse(
+        CestaRecomendacaoResponseDTO resultado = cestaMapper.mapearParaCestaRecomendacaoAtivaResponse(
                 cestaRecomendacao,
                 itensCesta
         );
@@ -310,7 +310,7 @@ class CestaMapperTest {
                 .thenReturn(Optional.of(cotacao));
 
         // When
-        CestaRecomendacaoAtivaResponseDTO resultado = cestaMapper.mapearParaCestaRecomendacaoAtivaResponse(
+        CestaRecomendacaoResponseDTO resultado = cestaMapper.mapearParaCestaRecomendacaoAtivaResponse(
                 cestaRecomendacao,
                 itensCesta
         );
@@ -341,7 +341,7 @@ class CestaMapperTest {
                 .thenReturn(Optional.of(cotacao));
 
         // When
-        CestaRecomendacaoAtivaResponseDTO resultado = cestaMapper.mapearParaCestaRecomendacaoAtivaResponse(
+        CestaRecomendacaoResponseDTO resultado = cestaMapper.mapearParaCestaRecomendacaoAtivaResponse(
                 cestaRecomendacao,
                 itensCesta
         );
@@ -459,6 +459,266 @@ class CestaMapperTest {
 
         // Then
         assertThat(resultado.itens()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Deve mapear response de alteração de cesta com todos os campos")
+    void deveMapeararResponseDeAlteracaoComTodosCampos() {
+        // Given
+        CestaRecomendacao novaCesta = new CestaRecomendacao();
+        novaCesta.setId(2L);
+        novaCesta.setNome("Top Five - Março 2026");
+        novaCesta.setAtiva(true);
+        novaCesta.setDataCriacao(LocalDateTime.of(2026, 3, 1, 9, 0, 0));
+
+        CestaRecomendacao cestaDesativada = new CestaRecomendacao();
+        cestaDesativada.setId(1L);
+        cestaDesativada.setNome("Top Five - Fevereiro 2026");
+        cestaDesativada.setDataDesativacao(LocalDateTime.of(2026, 3, 1, 9, 0, 0));
+
+        List<String> itensAdicionados = List.of("ABEV3", "RENT3");
+        List<String> itensRemovidos = List.of("BBDC4", "WEGE3");
+        Integer quantidadeClientes = 150;
+
+        // When
+        var resultado = cestaMapper.mapearParaAlterarTopFiveResponse(
+                novaCesta,
+                cestaDesativada,
+                itensCesta,
+                itensAdicionados,
+                itensRemovidos,
+                quantidadeClientes
+        );
+
+        // Then
+        assertThat(resultado).isNotNull();
+        assertThat(resultado.cestaId()).isEqualTo(2L);
+        assertThat(resultado.nome()).isEqualTo("Top Five - Março 2026");
+        assertThat(resultado.ativa()).isTrue();
+        assertThat(resultado.rebalanceamentoDisparado()).isTrue();
+        assertThat(resultado.ativosAdicionados()).containsExactly("ABEV3", "RENT3");
+        assertThat(resultado.ativosRemovidos()).containsExactly("BBDC4", "WEGE3");
+        assertThat(resultado.mensagem()).contains("150 clientes ativos");
+    }
+
+    @Test
+    @DisplayName("Deve incluir cesta anterior desativada no response de alteração")
+    void deveIncluirCestaAnteriorDesativadaNoResponseDeAlteracao() {
+        // Given
+        CestaRecomendacao novaCesta = new CestaRecomendacao();
+        novaCesta.setId(2L);
+        novaCesta.setNome("Top Five - Março 2026");
+        novaCesta.setAtiva(true);
+        novaCesta.setDataCriacao(LocalDateTime.of(2026, 3, 1, 9, 0, 0));
+
+        CestaRecomendacao cestaDesativada = new CestaRecomendacao();
+        cestaDesativada.setId(1L);
+        cestaDesativada.setNome("Top Five - Fevereiro 2026");
+        cestaDesativada.setDataDesativacao(LocalDateTime.of(2026, 3, 1, 9, 0, 0));
+
+        // When
+        var resultado = cestaMapper.mapearParaAlterarTopFiveResponse(
+                novaCesta,
+                cestaDesativada,
+                itensCesta,
+                List.of(),
+                List.of(),
+                0
+        );
+
+        // Then
+        assertThat(resultado.cestaAnteriorDesativada()).isNotNull();
+        assertThat(resultado.cestaAnteriorDesativada().cestaId()).isEqualTo(1L);
+        assertThat(resultado.cestaAnteriorDesativada().nome()).isEqualTo("Top Five - Fevereiro 2026");
+        assertThat(resultado.cestaAnteriorDesativada().dataDesativacao()).isEqualTo(LocalDateTime.of(2026, 3, 1, 9, 0, 0));
+    }
+
+    @Test
+    @DisplayName("Deve mapear itens atuais no response de alteração")
+    void deveMapeararItensAtuaisNoResponseDeAlteracao() {
+        // Given
+        CestaRecomendacao novaCesta = new CestaRecomendacao();
+        novaCesta.setId(2L);
+        novaCesta.setNome("Top Five - Março 2026");
+        novaCesta.setAtiva(true);
+        novaCesta.setDataCriacao(LocalDateTime.now());
+
+        CestaRecomendacao cestaDesativada = new CestaRecomendacao();
+        cestaDesativada.setId(1L);
+        cestaDesativada.setNome("Top Five - Fevereiro 2026");
+        cestaDesativada.setDataDesativacao(LocalDateTime.now());
+
+        // When
+        var resultado = cestaMapper.mapearParaAlterarTopFiveResponse(
+                novaCesta,
+                cestaDesativada,
+                itensCesta,
+                List.of(),
+                List.of(),
+                0
+        );
+
+        // Then
+        assertThat(resultado.itens()).hasSize(5);
+        assertThat(resultado.itens().get(0).ticker()).isEqualTo("PETR4");
+        assertThat(resultado.itens().get(0).percentual()).isEqualTo(new BigDecimal("30.00"));
+    }
+
+    @Test
+    @DisplayName("Deve marcar rebalanceamento como disparado na alteração")
+    void deveMarcarRebalanceamentoComoDisparadoNaAlteracao() {
+        // Given
+        CestaRecomendacao novaCesta = new CestaRecomendacao();
+        novaCesta.setId(2L);
+        novaCesta.setNome("Top Five - Março 2026");
+        novaCesta.setAtiva(true);
+        novaCesta.setDataCriacao(LocalDateTime.now());
+
+        CestaRecomendacao cestaDesativada = new CestaRecomendacao();
+        cestaDesativada.setId(1L);
+        cestaDesativada.setNome("Top Five - Fevereiro 2026");
+        cestaDesativada.setDataDesativacao(LocalDateTime.now());
+
+        // When
+        var resultado = cestaMapper.mapearParaAlterarTopFiveResponse(
+                novaCesta,
+                cestaDesativada,
+                itensCesta,
+                List.of("ABEV3"),
+                List.of("WEGE3"),
+                100
+        );
+
+        // Then
+        assertThat(resultado.rebalanceamentoDisparado()).isTrue();
+    }
+
+    @Test
+    @DisplayName("Deve incluir quantidade de clientes na mensagem de alteração")
+    void deveIncluirQuantidadeDeClientesNaMensagemDeAlteracao() {
+        // Given
+        CestaRecomendacao novaCesta = new CestaRecomendacao();
+        novaCesta.setId(2L);
+        novaCesta.setNome("Top Five - Março 2026");
+        novaCesta.setAtiva(true);
+        novaCesta.setDataCriacao(LocalDateTime.now());
+
+        CestaRecomendacao cestaDesativada = new CestaRecomendacao();
+        cestaDesativada.setId(1L);
+        cestaDesativada.setNome("Top Five - Fevereiro 2026");
+        cestaDesativada.setDataDesativacao(LocalDateTime.now());
+
+        Integer quantidadeClientes = 250;
+
+        // When
+        var resultado = cestaMapper.mapearParaAlterarTopFiveResponse(
+                novaCesta,
+                cestaDesativada,
+                itensCesta,
+                List.of(),
+                List.of(),
+                quantidadeClientes
+        );
+
+        // Then
+        assertThat(resultado.mensagem()).contains("250 clientes ativos");
+        assertThat(resultado.mensagem()).contains("Cesta atualizada");
+        assertThat(resultado.mensagem()).contains("Rebalanceamento disparado");
+    }
+
+    @Test
+    @DisplayName("Deve listar ativos adicionados e removidos corretamente")
+    void deveListarAtivosAdicionadosERemovidosCorretamente() {
+        // Given
+        CestaRecomendacao novaCesta = new CestaRecomendacao();
+        novaCesta.setId(2L);
+        novaCesta.setNome("Top Five - Março 2026");
+        novaCesta.setAtiva(true);
+        novaCesta.setDataCriacao(LocalDateTime.now());
+
+        CestaRecomendacao cestaDesativada = new CestaRecomendacao();
+        cestaDesativada.setId(1L);
+        cestaDesativada.setNome("Top Five - Fevereiro 2026");
+        cestaDesativada.setDataDesativacao(LocalDateTime.now());
+
+        List<String> adicionados = List.of("ABEV3", "RENT3", "SANB11");
+        List<String> removidos = List.of("BBDC4", "WEGE3");
+
+        // When
+        var resultado = cestaMapper.mapearParaAlterarTopFiveResponse(
+                novaCesta,
+                cestaDesativada,
+                itensCesta,
+                adicionados,
+                removidos,
+                150
+        );
+
+        // Then
+        assertThat(resultado.ativosAdicionados()).hasSize(3);
+        assertThat(resultado.ativosAdicionados()).containsExactly("ABEV3", "RENT3", "SANB11");
+        assertThat(resultado.ativosRemovidos()).hasSize(2);
+        assertThat(resultado.ativosRemovidos()).containsExactly("BBDC4", "WEGE3");
+    }
+
+    @Test
+    @DisplayName("Deve aceitar listas vazias de ativos adicionados e removidos")
+    void deveAceitarListasVaziasDeAtivosAdicionadosERemovidos() {
+        // Given
+        CestaRecomendacao novaCesta = new CestaRecomendacao();
+        novaCesta.setId(2L);
+        novaCesta.setNome("Top Five - Março 2026");
+        novaCesta.setAtiva(true);
+        novaCesta.setDataCriacao(LocalDateTime.now());
+
+        CestaRecomendacao cestaDesativada = new CestaRecomendacao();
+        cestaDesativada.setId(1L);
+        cestaDesativada.setNome("Top Five - Fevereiro 2026");
+        cestaDesativada.setDataDesativacao(LocalDateTime.now());
+
+        // When
+        var resultado = cestaMapper.mapearParaAlterarTopFiveResponse(
+                novaCesta,
+                cestaDesativada,
+                itensCesta,
+                List.of(),
+                List.of(),
+                0
+        );
+
+        // Then
+        assertThat(resultado.ativosAdicionados()).isEmpty();
+        assertThat(resultado.ativosRemovidos()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Deve mapear corretamente data de criação da nova cesta")
+    void deveMapeararCorretamenteDataDeCriacaoDaNovaCesta() {
+        // Given
+        LocalDateTime dataCriacao = LocalDateTime.of(2026, 3, 15, 10, 30, 0);
+        CestaRecomendacao novaCesta = new CestaRecomendacao();
+        novaCesta.setId(2L);
+        novaCesta.setNome("Top Five - Março 2026");
+        novaCesta.setAtiva(true);
+        novaCesta.setDataCriacao(dataCriacao);
+
+        CestaRecomendacao cestaDesativada = new CestaRecomendacao();
+        cestaDesativada.setId(1L);
+        cestaDesativada.setNome("Top Five - Fevereiro 2026");
+        cestaDesativada.setDataDesativacao(LocalDateTime.now());
+
+        // When
+        var resultado = cestaMapper.mapearParaAlterarTopFiveResponse(
+                novaCesta,
+                cestaDesativada,
+                itensCesta,
+                List.of(),
+                List.of(),
+                0
+        );
+
+        // Then
+        assertThat(resultado.dataCriacao()).isEqualTo(dataCriacao);
     }
 }
 

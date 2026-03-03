@@ -5,7 +5,7 @@ import com.itau.srv.trading.service.dto.itemcesta.ItemCotacaoAtualResponseDTO;
 import java.time.LocalDateTime;
 import java.util.List;
 
-public record CestaRecomendacaoAtivaResponseDTO(
+public record CestaRecomendacaoResponseDTO(
         Long cestaId,
         String nome,
         Boolean ativa,
