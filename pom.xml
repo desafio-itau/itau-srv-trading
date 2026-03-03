@@ -15,6 +15,18 @@
 			<url>https://maven.pkg.github.com/desafio-itau/itau-common-library</url>
 		</repository>
 	</distributionManagement>
+
+	<repositories>
+		<repository>
+			<id>github</id>
+			<name>GitHub Packages</name>
+			<url>https://maven.pkg.github.com/desafio-itau/itau-common-library</url>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+		</repository>
+	</repositories>
+
 	<groupId>com.itau</groupId>
 	<artifactId>srv.trading.service</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
