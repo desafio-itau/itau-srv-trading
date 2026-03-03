@@ -3,11 +3,6 @@ name: CI/CD Pipeline
 on:
   workflow_dispatch:
     inputs:
-      branch:
-        description: 'Branch para executar os testes'
-        required: true
-        default: 'main'
-        type: string
       environment:
         description: 'Ambiente de execução dos testes'
         required: false
