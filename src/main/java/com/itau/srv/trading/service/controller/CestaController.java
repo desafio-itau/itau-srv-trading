@@ -1,7 +1,7 @@
 package com.itau.srv.trading.service.controller;
 
 import com.itau.common.library.generic.ControllerGenerico;
-import com.itau.srv.trading.service.dto.cesta.CestaRecomendacaoAtivaResponseDTO;
+import com.itau.srv.trading.service.dto.cesta.CestaRecomendacaoResponseDTO;
 import com.itau.srv.trading.service.dto.cesta.CestaResponseDTO;
 import com.itau.srv.trading.service.dto.cesta.CriarTopFiveRequestDTO;
 import com.itau.srv.trading.service.dto.cesta.HistoricoCestaResponseDTO;
@@ -36,7 +36,7 @@ public class CestaController implements ControllerGenerico {
     }
 
     @GetMapping("/cesta/atual")
-    public ResponseEntity<CestaRecomendacaoAtivaResponseDTO> obterCestaAtiva() {
+    public ResponseEntity<CestaRecomendacaoResponseDTO> obterCestaAtiva() {
         log.info("Buscando cesta ativa.");
 
         return ResponseEntity.ok(cestaService.obterCestaAtiva());
@@ -52,5 +52,10 @@ public class CestaController implements ControllerGenerico {
     @GetMapping("/conta-master/custodia")
     public ResponseEntity<CustodiaMasterResponseDTO> obterCustodiaMaster() {
         return ResponseEntity.ok(custodiaMaterService.buscarCustodiaMaster());
+    }
+
+    @GetMapping("/{cestaId}")
+    public ResponseEntity<CestaRecomendacaoResponseDTO> obterCestaPorId(@PathVariable Long cestaId) {
+        return ResponseEntity.ok(cestaService.obterCestaPorId(cestaId));
     }
 }

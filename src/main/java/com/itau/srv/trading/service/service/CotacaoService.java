@@ -30,9 +30,11 @@ public class CotacaoService {
     }
 
     public CotacaoB3 obterCotacaoFechamento(String ticker) {
+        String tickerFormatado = ticker.endsWith("F") ? ticker.substring(0, ticker.length() - 1) : ticker;
+
         Cotacao cotacao = cotacaoRepository.findAll()
                 .stream()
-                .filter(cotacaoEncontrada -> cotacaoEncontrada.getTicker().equals(ticker) && cotacaoEncontrada.getTipoMercado() == 10)
+                .filter(cotacaoEncontrada -> cotacaoEncontrada.getTicker().equals(tickerFormatado) && cotacaoEncontrada.getTipoMercado() == 10)
                 .findFirst()
                 .orElseThrow(() -> {
                     log.error("Cotação de fechamento não encontrada para ticker: {}", ticker);

@@ -47,4 +47,9 @@ external-endpoints:
     url: ${ITAU_SRV_CUSTODIA_URL:http://localhost:8082/api/custodia-master}
     connection-timeout: 3000
     read-timeout: 8000
+  itau-srv-rebalanceamento:
+    name: itau-srv-rebalanceamento
+    url: ${ITAU_SRV_REBALANCEAMENTO_URL:http://localhost:8082/api/rebalanceamentos}
+    connection-timeout: 3000
+    read-timeout: 8000
 

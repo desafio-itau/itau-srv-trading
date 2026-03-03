@@ -3,6 +3,8 @@ package com.itau.srv.trading.service.service;
 import com.itau.common.library.exception.NegocioException;
 import com.itau.srv.trading.service.dto.cesta.*;
 import com.itau.srv.trading.service.dto.itemcesta.ItemCestaRequestDTO;
+import com.itau.srv.trading.service.feign.ClientesFeignClient;
+import com.itau.srv.trading.service.feign.RebalanceamentoFeignClient;
 import com.itau.srv.trading.service.mapper.CestaMapper;
 import com.itau.srv.trading.service.model.CestaRecomendacao;
 import com.itau.srv.trading.service.model.ItemCesta;
@@ -47,6 +49,12 @@ class CestaServiceTest {
 
     @Mock
     private CotahistParser cotahistParser;
+
+    @Mock
+    private ClientesFeignClient clientesFeignClient;
+
+    @Mock
+    private RebalanceamentoFeignClient rebalanceamentoFeignClient;
 
     @InjectMocks
     private CestaService cestaService;
@@ -161,17 +169,36 @@ class CestaServiceTest {
     void deveChamarAlteracaoQuandoExisteCestaAtiva() {
         // Given
         when(cestaRecomendacaoRepository.findByAtivaTrue()).thenReturn(Optional.of(cestaRecomendacao));
+        when(clientesFeignClient.listarClientesAtivos()).thenReturn(List.of());
+        when(cestaMapper.mapearParaCestaRecomendacao(any())).thenReturn(new CestaRecomendacao());
+        when(cestaRecomendacaoRepository.save(any())).thenReturn(cestaRecomendacao);
+        when(itemCestaService.criarItensCesta(anyList(), any())).thenReturn(itensCesta);
+        when(itemCestaRepository.findAllByCestaRecomendacao(any())).thenReturn(itensCesta);
+
+        AlterarTopFiveResponseDTO alterarResponse = new AlterarTopFiveResponseDTO(
+                cestaRecomendacao.getId(),
+                cestaRecomendacao.getNome(),
+                cestaRecomendacao.getAtiva(),
+                cestaRecomendacao.getDataCriacao(),
+                List.of(),
+                null,
+                true,
+                List.of(),
+                List.of(),
+                "Cesta atualizada"
+        );
+        when(cestaMapper.mapearParaAlterarTopFiveResponse(any(), any(), anyList(), anyList(), anyList(), anyInt()))
+                .thenReturn(alterarResponse);
 
         // When
         CestaResponseDTO resultado = cestaService.criarOuAlterarCesta(requestDTOValido);
 
         // Then
-        // O método alterarCestaComRebalanceamento ainda não está implementado, então retorna null
-        assertThat(resultado).isNull();
+        assertThat(resultado).isNotNull();
+        assertThat(resultado).isInstanceOf(AlterarTopFiveResponseDTO.class);
 
         verify(cestaRecomendacaoRepository).findByAtivaTrue();
-        verify(cestaRecomendacaoRepository, never()).save(any());
-        verify(itemCestaService, never()).criarItensCesta(anyList(), any());
+        verify(clientesFeignClient).listarClientesAtivos();
     }
 
     @Test
@@ -291,7 +318,7 @@ class CestaServiceTest {
         when(cestaRecomendacaoRepository.findByAtivaTrue()).thenReturn(Optional.of(cestaRecomendacao));
         when(itemCestaRepository.findAllByCestaRecomendacao(cestaRecomendacao)).thenReturn(itensCesta);
 
-        CestaRecomendacaoAtivaResponseDTO responseDTO = new CestaRecomendacaoAtivaResponseDTO(
+        CestaRecomendacaoResponseDTO responseDTO = new CestaRecomendacaoResponseDTO(
                 1L,
                 "Top Five - Fevereiro 2026",
                 true,
@@ -302,7 +329,7 @@ class CestaServiceTest {
                 .thenReturn(responseDTO);
 
         // When
-        CestaRecomendacaoAtivaResponseDTO resultado = cestaService.obterCestaAtiva();
+        CestaRecomendacaoResponseDTO resultado = cestaService.obterCestaAtiva();
 
         // Then
         assertThat(resultado).isNotNull();
@@ -338,7 +365,7 @@ class CestaServiceTest {
         when(cestaRecomendacaoRepository.findByAtivaTrue()).thenReturn(Optional.of(cestaRecomendacao));
         when(itemCestaRepository.findAllByCestaRecomendacao(cestaRecomendacao)).thenReturn(itensCesta);
 
-        CestaRecomendacaoAtivaResponseDTO responseDTO = new CestaRecomendacaoAtivaResponseDTO(
+        CestaRecomendacaoResponseDTO responseDTO = new CestaRecomendacaoResponseDTO(
                 1L,
                 "Top Five - Fevereiro 2026",
                 true,

@@ -5,10 +5,14 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.itau.common.library.exception.NegocioException;
 import com.itau.common.library.handler.GlobalExceptionHandler;
 import com.itau.srv.trading.service.dto.cesta.*;
+import com.itau.srv.trading.service.dto.custodiamaster.ContaMasterResponseDTO;
+import com.itau.srv.trading.service.dto.custodiamaster.CustodiaMasterResponseDTO;
+import com.itau.srv.trading.service.dto.custodiamaster.CustodiaResponseDTO;
 import com.itau.srv.trading.service.dto.itemcesta.ItemCestaRequestDTO;
 import com.itau.srv.trading.service.dto.itemcesta.ItemCestaResponseDTO;
 import com.itau.srv.trading.service.dto.itemcesta.ItemCotacaoAtualResponseDTO;
 import com.itau.srv.trading.service.service.CestaService;
+import com.itau.srv.trading.service.service.CustodiaMaterService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -42,6 +46,9 @@ class CestaControllerTest {
 
     @Mock
     private CestaService cestaService;
+
+    @Mock
+    private CustodiaMaterService custodiaMaterService;
 
     @InjectMocks
     private CestaController cestaController;
@@ -231,7 +238,7 @@ class CestaControllerTest {
                 new ItemCotacaoAtualResponseDTO("WEGE3", new BigDecimal("10.00"), new BigDecimal("40.00"))
         );
 
-        CestaRecomendacaoAtivaResponseDTO cestaAtiva = new CestaRecomendacaoAtivaResponseDTO(
+        CestaRecomendacaoResponseDTO cestaAtiva = new CestaRecomendacaoResponseDTO(
                 1L,
                 "Top Five - Fevereiro 2026",
                 true,
@@ -278,7 +285,7 @@ class CestaControllerTest {
                 new ItemCotacaoAtualResponseDTO("PETR4", new BigDecimal("30.00"), new BigDecimal("35.50"))
         );
 
-        CestaRecomendacaoAtivaResponseDTO cestaAtiva = new CestaRecomendacaoAtivaResponseDTO(
+        CestaRecomendacaoResponseDTO cestaAtiva = new CestaRecomendacaoResponseDTO(
                 1L,
                 "Top Five - Fevereiro 2026",
                 true,
@@ -302,7 +309,7 @@ class CestaControllerTest {
     @DisplayName("Deve retornar todos os campos da cesta ativa")
     void deveRetornarTodosCamposDaCestaAtiva() throws Exception {
         // Given
-        CestaRecomendacaoAtivaResponseDTO cestaAtiva = new CestaRecomendacaoAtivaResponseDTO(
+        CestaRecomendacaoResponseDTO cestaAtiva = new CestaRecomendacaoResponseDTO(
                 1L,
                 "Top Five - Fevereiro 2026",
                 true,
@@ -531,6 +538,253 @@ class CestaControllerTest {
                 .andExpect(jsonPath("$.cestas[2].ativa").value(true));
 
         verify(cestaService).obterHistoricoCestas();
+    }
+
+    @Test
+    @DisplayName("Deve obter cesta por ID com sucesso")
+    void deveObterCestaPorIdComSucesso() throws Exception {
+        // Given
+        List<ItemCotacaoAtualResponseDTO> itensComCotacao = List.of(
+                new ItemCotacaoAtualResponseDTO("PETR4", new BigDecimal("30.00"), new BigDecimal("35.50")),
+                new ItemCotacaoAtualResponseDTO("VALE3", new BigDecimal("25.00"), new BigDecimal("62.50"))
+        );
+
+        CestaRecomendacaoResponseDTO cesta = new CestaRecomendacaoResponseDTO(
+                1L,
+                "Top Five - Fevereiro 2026",
+                true,
+                LocalDateTime.of(2026, 2, 1, 9, 0, 0),
+                itensComCotacao
+        );
+
+        when(cestaService.obterCestaPorId(1L)).thenReturn(cesta);
+
+        // When & Then
+        mockMvc.perform(get("/api/admin/1")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.cestaId").value(1))
+                .andExpect(jsonPath("$.nome").value("Top Five - Fevereiro 2026"))
+                .andExpect(jsonPath("$.ativa").value(true))
+                .andExpect(jsonPath("$.itens", hasSize(2)))
+                .andExpect(jsonPath("$.itens[0].ticker").value("PETR4"))
+                .andExpect(jsonPath("$.itens[0].cotacaoAtual").value(35.50));
+
+        verify(cestaService).obterCestaPorId(1L);
+    }
+
+    @Test
+    @DisplayName("Deve retornar erro quando cesta não for encontrada por ID")
+    void deveRetornarErroQuandoCestaNaoForEncontradaPorId() throws Exception {
+        // Given
+        when(cestaService.obterCestaPorId(999L))
+                .thenThrow(new NegocioException("CESTA_NAO_ENCONTRADA"));
+
+        // When & Then
+        mockMvc.perform(get("/api/admin/999")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+
+        verify(cestaService).obterCestaPorId(999L);
+    }
+
+    @Test
+    @DisplayName("Deve incluir todos os campos ao obter cesta por ID")
+    void deveIncluirTodosCamposAoObterCestaPorId() throws Exception {
+        // Given
+        CestaRecomendacaoResponseDTO cesta = new CestaRecomendacaoResponseDTO(
+                5L,
+                "Top Five - Março 2026",
+                true,
+                LocalDateTime.of(2026, 3, 1, 9, 0, 0),
+                List.of()
+        );
+
+        when(cestaService.obterCestaPorId(5L)).thenReturn(cesta);
+
+        // When & Then
+        mockMvc.perform(get("/api/admin/5")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.cestaId").exists())
+                .andExpect(jsonPath("$.nome").exists())
+                .andExpect(jsonPath("$.ativa").exists())
+                .andExpect(jsonPath("$.dataCriacao").exists())
+                .andExpect(jsonPath("$.itens").exists());
+
+        verify(cestaService).obterCestaPorId(5L);
+    }
+
+    @Test
+    @DisplayName("Deve aceitar IDs numéricos variados")
+    void deveAceitarIdsNumericosVariados() throws Exception {
+        // Given
+        CestaRecomendacaoResponseDTO cesta = new CestaRecomendacaoResponseDTO(
+                100L,
+                "Top Five - Teste",
+                false,
+                LocalDateTime.now(),
+                List.of()
+        );
+
+        when(cestaService.obterCestaPorId(100L)).thenReturn(cesta);
+
+        // When & Then
+        mockMvc.perform(get("/api/admin/100")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.cestaId").value(100));
+
+        verify(cestaService).obterCestaPorId(100L);
+    }
+
+    @Test
+    @DisplayName("Deve obter custodia master com sucesso")
+    void deveObterCustodiaMasterComSucesso() throws Exception {
+        // Given
+        ContaMasterResponseDTO contaMaster = new ContaMasterResponseDTO(
+                1L,
+                "MASTER001",
+                "MASTER"
+        );
+
+        List<CustodiaResponseDTO> custodias = List.of(
+                new CustodiaResponseDTO("PETR4", 1000, new BigDecimal("35.50"), new BigDecimal("35500.00"), "COMPRA"),
+                new CustodiaResponseDTO("VALE3", 500, new BigDecimal("62.00"), new BigDecimal("31000.00"), "COMPRA")
+        );
+
+        CustodiaMasterResponseDTO custodiaMaster = new CustodiaMasterResponseDTO(
+                contaMaster,
+                custodias,
+                new BigDecimal("5000.00")
+        );
+
+        when(custodiaMaterService.buscarCustodiaMaster()).thenReturn(custodiaMaster);
+
+        // When & Then
+        mockMvc.perform(get("/api/admin/conta-master/custodia")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.contaMaster.id").value(1))
+                .andExpect(jsonPath("$.contaMaster.numeroConta").value("MASTER001"))
+                .andExpect(jsonPath("$.contaMaster.tipo").value("MASTER"))
+                .andExpect(jsonPath("$.custodia", hasSize(2)))
+                .andExpect(jsonPath("$.custodia[0].ticker").value("PETR4"))
+                .andExpect(jsonPath("$.custodia[0].quantidade").value(1000))
+                .andExpect(jsonPath("$.custodia[0].precoMedio").value(35.50))
+                .andExpect(jsonPath("$.custodia[0].valorAtual").value(35500.00))
+                .andExpect(jsonPath("$.custodia[1].ticker").value("VALE3"))
+                .andExpect(jsonPath("$.valorTotalResiduo").value(5000.00));
+
+        verify(custodiaMaterService).buscarCustodiaMaster();
+    }
+
+    @Test
+    @DisplayName("Deve retornar todos os campos da custodia master")
+    void deveRetornarTodosCamposDaCustodiaMaster() throws Exception {
+        // Given
+        ContaMasterResponseDTO contaMaster = new ContaMasterResponseDTO(1L, "MASTER001", "MASTER");
+        CustodiaMasterResponseDTO custodiaMaster = new CustodiaMasterResponseDTO(
+                contaMaster,
+                List.of(),
+                BigDecimal.ZERO
+        );
+
+        when(custodiaMaterService.buscarCustodiaMaster()).thenReturn(custodiaMaster);
+
+        // When & Then
+        mockMvc.perform(get("/api/admin/conta-master/custodia")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.contaMaster").exists())
+                .andExpect(jsonPath("$.custodia").exists())
+                .andExpect(jsonPath("$.valorTotalResiduo").exists());
+
+        verify(custodiaMaterService).buscarCustodiaMaster();
+    }
+
+    @Test
+    @DisplayName("Deve retornar custodia master com lista vazia de ativos")
+    void deveRetornarCustodiaMasterComListaVaziaDeAtivos() throws Exception {
+        // Given
+        ContaMasterResponseDTO contaMaster = new ContaMasterResponseDTO(1L, "MASTER001", "MASTER");
+        CustodiaMasterResponseDTO custodiaMaster = new CustodiaMasterResponseDTO(
+                contaMaster,
+                List.of(),
+                new BigDecimal("10000.00")
+        );
+
+        when(custodiaMaterService.buscarCustodiaMaster()).thenReturn(custodiaMaster);
+
+        // When & Then
+        mockMvc.perform(get("/api/admin/conta-master/custodia")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.custodia", hasSize(0)))
+                .andExpect(jsonPath("$.valorTotalResiduo").value(10000.00));
+
+        verify(custodiaMaterService).buscarCustodiaMaster();
+    }
+
+    @Test
+    @DisplayName("Deve retornar múltiplas custodias na conta master")
+    void deveRetornarMultiplasCustodiasNaContaMaster() throws Exception {
+        // Given
+        ContaMasterResponseDTO contaMaster = new ContaMasterResponseDTO(1L, "MASTER001", "MASTER");
+        List<CustodiaResponseDTO> custodias = List.of(
+                new CustodiaResponseDTO("PETR4", 1000, new BigDecimal("35.50"), new BigDecimal("35500.00"), "COMPRA"),
+                new CustodiaResponseDTO("VALE3", 500, new BigDecimal("62.00"), new BigDecimal("31000.00"), "COMPRA"),
+                new CustodiaResponseDTO("ITUB4", 800, new BigDecimal("30.00"), new BigDecimal("24000.00"), "COMPRA"),
+                new CustodiaResponseDTO("BBDC4", 1200, new BigDecimal("15.00"), new BigDecimal("18000.00"), "COMPRA")
+        );
+
+        CustodiaMasterResponseDTO custodiaMaster = new CustodiaMasterResponseDTO(
+                contaMaster,
+                custodias,
+                new BigDecimal("2500.00")
+        );
+
+        when(custodiaMaterService.buscarCustodiaMaster()).thenReturn(custodiaMaster);
+
+        // When & Then
+        mockMvc.perform(get("/api/admin/conta-master/custodia")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.custodia", hasSize(4)))
+                .andExpect(jsonPath("$.custodia[0].ticker").value("PETR4"))
+                .andExpect(jsonPath("$.custodia[1].ticker").value("VALE3"))
+                .andExpect(jsonPath("$.custodia[2].ticker").value("ITUB4"))
+                .andExpect(jsonPath("$.custodia[3].ticker").value("BBDC4"));
+
+        verify(custodiaMaterService).buscarCustodiaMaster();
+    }
+
+    @Test
+    @DisplayName("Deve incluir origem da custodia em cada ativo")
+    void deveIncluirOrigemDaCustodiaEmCadaAtivo() throws Exception {
+        // Given
+        ContaMasterResponseDTO contaMaster = new ContaMasterResponseDTO(1L, "MASTER001", "MASTER");
+        List<CustodiaResponseDTO> custodias = List.of(
+                new CustodiaResponseDTO("PETR4", 1000, new BigDecimal("35.50"), new BigDecimal("35500.00"), "COMPRA"),
+                new CustodiaResponseDTO("VALE3", 500, new BigDecimal("62.00"), new BigDecimal("31000.00"), "REBALANCEAMENTO")
+        );
+
+        CustodiaMasterResponseDTO custodiaMaster = new CustodiaMasterResponseDTO(
+                contaMaster,
+                custodias,
+                BigDecimal.ZERO
+        );
+
+        when(custodiaMaterService.buscarCustodiaMaster()).thenReturn(custodiaMaster);
+
+        // When & Then
+        mockMvc.perform(get("/api/admin/conta-master/custodia")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.custodia[0].origem").value("COMPRA"))
+                .andExpect(jsonPath("$.custodia[1].origem").value("REBALANCEAMENTO"));
+
+        verify(custodiaMaterService).buscarCustodiaMaster();
     }
 }
 
