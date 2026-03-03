@@ -1,19 +1,18 @@
 package com.itau.srv.trading.service.controller;
 
 import com.itau.common.library.generic.ControllerGenerico;
-import com.itau.srv.trading.service.dto.cesta.CestaRecomendacaoAtivaResponseDTO;
+import com.itau.srv.trading.service.dto.cesta.CestaRecomendacaoResponseDTO;
 import com.itau.srv.trading.service.dto.cesta.CestaResponseDTO;
 import com.itau.srv.trading.service.dto.cesta.CriarTopFiveRequestDTO;
-import com.itau.srv.trading.service.dto.cesta.CriarTopFiveResponseDTO;
-import com.itau.srv.trading.service.dto.cotacaob3.CotacaoB3;
+import com.itau.srv.trading.service.dto.cesta.HistoricoCestaResponseDTO;
+import com.itau.srv.trading.service.dto.custodiamaster.CustodiaMasterResponseDTO;
 import com.itau.srv.trading.service.service.CestaService;
+import com.itau.srv.trading.service.service.CustodiaMaterService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @Slf4j
 @RestController
@@ -22,6 +21,7 @@ import java.util.List;
 public class CestaController implements ControllerGenerico {
 
     private final CestaService cestaService;
+    private final CustodiaMaterService custodiaMaterService;
 
     @PostMapping("/cesta")
     public ResponseEntity<CestaResponseDTO> criarOuAlterarCesta(@RequestBody @Valid CriarTopFiveRequestDTO dto) {
@@ -35,33 +35,27 @@ public class CestaController implements ControllerGenerico {
                 .body(resposta);
     }
 
-    @GetMapping("/cotacoes")
-    public ResponseEntity<List<CotacaoB3>> listarCotacoes() {
-        log.info("Buscando cotações da B3.");
-
-        List<CotacaoB3> cotacoes = cestaService.buscarCotacoes();
-
-        log.info("Cotações da B3 buscadas com sucesso. Quantidade: {}", cotacoes.size());
-        return ResponseEntity.ok(cotacoes);
-    }
-
-    @GetMapping("/cotacoes/{ticker}")
-    public ResponseEntity<CotacaoB3> obterCotacaoFechamento(@PathVariable String ticker) {
-        log.info("Buscando cotação de fechamento para ticker: {}", ticker);
-
-        return ResponseEntity
-                .ok(cestaService.obterCotacaoFechamento(ticker)
-                        .orElseThrow(() -> {
-                            log.error("Cotação não encontrada para ticker: {}", ticker);
-                            return new RuntimeException("COTACAO_NAO_ENCONTRADA");
-                        })
-                );
-    }
-
     @GetMapping("/cesta/atual")
-    public ResponseEntity<CestaRecomendacaoAtivaResponseDTO> obterCestaAtiva() {
+    public ResponseEntity<CestaRecomendacaoResponseDTO> obterCestaAtiva() {
         log.info("Buscando cesta ativa.");
 
         return ResponseEntity.ok(cestaService.obterCestaAtiva());
+    }
+
+    @GetMapping("/cesta/historico")
+    public ResponseEntity<HistoricoCestaResponseDTO> obterHistoricoCestas() {
+        log.info("Buscando histórico de cestas.");
+
+        return ResponseEntity.ok(cestaService.obterHistoricoCestas());
+    }
+
+    @GetMapping("/conta-master/custodia")
+    public ResponseEntity<CustodiaMasterResponseDTO> obterCustodiaMaster() {
+        return ResponseEntity.ok(custodiaMaterService.buscarCustodiaMaster());
+    }
+
+    @GetMapping("/{cestaId}")
+    public ResponseEntity<CestaRecomendacaoResponseDTO> obterCestaPorId(@PathVariable Long cestaId) {
+        return ResponseEntity.ok(cestaService.obterCestaPorId(cestaId));
     }
 }

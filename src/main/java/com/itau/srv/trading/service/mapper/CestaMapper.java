@@ -1,10 +1,9 @@
 package com.itau.srv.trading.service.mapper;
 
-import com.itau.srv.trading.service.dto.cesta.CestaRecomendacaoAtivaResponseDTO;
-import com.itau.srv.trading.service.dto.cesta.CriarTopFiveRequestDTO;
-import com.itau.srv.trading.service.dto.cesta.CriarTopFiveResponseDTO;
+import com.itau.srv.trading.service.dto.cesta.*;
 import com.itau.srv.trading.service.dto.itemcesta.ItemCestaResponseDTO;
 import com.itau.srv.trading.service.dto.itemcesta.ItemCotacaoAtualResponseDTO;
+import com.itau.srv.trading.service.dto.cesta.AlterarTopFiveResponseDTO;
 import com.itau.srv.trading.service.model.CestaRecomendacao;
 import com.itau.srv.trading.service.model.ItemCesta;
 import com.itau.srv.trading.service.util.CotahistParser;
@@ -42,13 +41,39 @@ public class CestaMapper {
         );
     }
 
-    public CestaRecomendacaoAtivaResponseDTO mapearParaCestaRecomendacaoAtivaResponse(CestaRecomendacao cesta, List<ItemCesta> itens) {
-        return new CestaRecomendacaoAtivaResponseDTO(
+    public CestaRecomendacaoResponseDTO mapearParaCestaRecomendacaoAtivaResponse(CestaRecomendacao cesta, List<ItemCesta> itens) {
+        return new CestaRecomendacaoResponseDTO(
                 cesta.getId(),
                 cesta.getNome(),
                 cesta.getAtiva(),
                 cesta.getDataCriacao(),
                 mapearParaItemCotacaoAtualResponse(itens)
+        );
+    }
+
+    public CestaHistoricoResponseDTO mapearParaCestaHistoricoResponse(CestaRecomendacao cesta, List<ItemCesta> itens) {
+        return new CestaHistoricoResponseDTO(
+                cesta.getId(),
+                cesta.getNome(),
+                cesta.getAtiva(),
+                cesta.getDataCriacao(),
+                cesta.getDataDesativacao(),
+                mapearParaItemCestaResponse(itens)
+        );
+    }
+
+    public AlterarTopFiveResponseDTO mapearParaAlterarTopFiveResponse(CestaRecomendacao novaCesta, CestaRecomendacao cestaDesativada, List<ItemCesta> itensAtuais, List<String> itensAdicionados, List<String> itensRemovidos, Integer quantidadeClientes) {
+        return new AlterarTopFiveResponseDTO(
+                novaCesta.getId(),
+                novaCesta.getNome(),
+                novaCesta.getAtiva(),
+                novaCesta.getDataCriacao(),
+                mapearParaItemCestaResponse(itensAtuais),
+                mapearParaCestaAnteriorDesativada(cestaDesativada),
+                true,
+                itensRemovidos,
+                itensAdicionados,
+                "Cesta atualizada. Rebalanceamento disparado para " + quantidadeClientes + " clientes ativos."
         );
     }
 
@@ -82,5 +107,13 @@ public class CestaMapper {
         }
 
         return itensResponse;
+    }
+
+    private CestaAnteriorDesativadaDTO mapearParaCestaAnteriorDesativada(CestaRecomendacao cesta) {
+        return new CestaAnteriorDesativadaDTO(
+                cesta.getId(),
+                cesta.getNome(),
+                cesta.getDataDesativacao()
+        );
     }
 }

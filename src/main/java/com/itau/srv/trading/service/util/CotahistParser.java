@@ -38,16 +38,11 @@ public class CotahistParser {
                 var cotacao = new CotacaoB3(
                         LocalDate.parse(linha.substring(2, 10), DateTimeFormatter.ofPattern("yyyyMMdd")),
                         linha.substring(12, 24).trim(),
-                        linha.substring(10, 12).trim(),
                         tipoMercado,
-                        linha.substring(27, 39).trim(),
                         parsePreco(linha.substring(56, 69)),
                         parsePreco(linha.substring(69, 82)),
                         parsePreco(linha.substring(82, 95)),
-                        parsePreco(linha.substring(95, 108)),
-                        parsePreco(linha.substring(108, 121)),
-                        Long.parseLong(linha.substring(152, 170).trim()),
-                        parsePreco(linha.substring(170, 188))
+                        parsePreco(linha.substring(95, 108))
                 );
 
                 cotacoes.add(cotacao);

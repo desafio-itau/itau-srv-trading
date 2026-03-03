@@ -49,7 +49,7 @@
 		<java.version>17</java.version>
 		<spring-cloud.version>2024.0.0</spring-cloud.version>
 		<jacoco-maven-plugin.version>0.8.12</jacoco-maven-plugin.version>
-		<jacoco.coverage.exclusions>com/itau/srv/trading/service/util/**,com/itau/srv/trading/service/exception/**,com/itau/srv/trading/service/model/**,com/itau/srv/trading/service/repository/**,com/itau/srv/trading/service/dto/**,com/itau/srv/trading/service/annotation/**,com/itau/srv/trading/service/ServicoDeTradingApplication.class</jacoco.coverage.exclusions>
+		<jacoco.coverage.exclusions>com/itau/srv/trading/service/feign/**,com/itau/srv/trading/service/util/**,com/itau/srv/trading/service/exception/**,com/itau/srv/trading/service/model/**,com/itau/srv/trading/service/repository/**,com/itau/srv/trading/service/dto/**,com/itau/srv/trading/service/annotation/**,com/itau/srv/trading/service/ServicoDeTradingApplication.class</jacoco.coverage.exclusions>
 	</properties>
 	<dependencies>
 		<dependency>
