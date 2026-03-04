@@ -40,7 +40,7 @@ springdoc:
     tags-sorter: alpha
     operations-sorter: alpha
   show-actuator: false
-  packages-to-scan: com.itau.srv.trading.service
+  packages-to-scan: com.itau.srv.trading.service.controller
   paths-to-match: /api/**
 
 external-endpoints:
